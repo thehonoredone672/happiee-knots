@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Bag | Happiee Knots</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="header-container">
+                <div class="header-left">
+                    <h1 class="logo">
+                        <span class="logo-main">happiee</span> knots
+                    </h1>
+                </div>
+
+                <nav class="desktop-nav">
+                    <a href="index.html" class="nav-link">HOME</a>
+                    <a href="products.html" class="nav-link">PRODUCTS</a>
+                    <a href="about.html" class="nav-link">ABOUT US</a>
+                </nav>
+
+                <div class="header-right">
+                    <a href="#" class="nav-link hide-mobile">LOGIN</a>
+                    <button class="btn-signup hide-mobile">SIGN UP</button>
+                    
+                    <a href="https://wa.me/919999999999" target="_blank" class="icon-btn" aria-label="Contact via WhatsApp">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                    </a>
+                    
+                    <a href="cart.html" class="icon-btn cart-btn" aria-label="Cart">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                        </svg>
+                        <span class="cart-badge" style="display:none">0</span>
+                    </a>
+                    <button class="icon-btn menu-toggle" id="menuToggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                </div>
+            </div>
+            <div class="mobile-overlay" id="mobileOverlay"></div>
+            <div class="mobile-menu" id="mobileMenu">
+                <button class="mobile-menu-close" id="mobileMenuClose">&times;</button>
+                <a href="index.html" class="mobile-nav-link">Home</a>
+                <a href="products.html" class="mobile-nav-link">Products</a>
+                <a href="about.html" class="mobile-nav-link">About Us</a>
+                <a href="https://wa.me/919999999999" class="mobile-nav-link">Contact</a>
+                <a href="#" class="mobile-nav-link">Login</a>
+            </div>
+        </header>
+
+        <main class="main-content" style="padding-top: 3rem; padding-bottom: 5rem;">
+            <div class="cart-page-header">
+                <h1 class="heading-font">Shopping Bag</h1>
+                <div class="cart-controls" id="cartControls" style="display:none; color: var(--color-gray-500);">
+                    <span style="margin-right: 15px;"><span class="cartCountLabel">0</span> items</span>
+                    <button class="clear-cart-btn" id="clearCartBtn" style="text-decoration: underline; color: inherit;">Clear all</button>
+                </div>
+            </div>
+
+            <!-- Single Render Container - JavaScript automatically centers the Empty State perfectly -->
+            <div class="cart-layout" id="cartPageContainer">
+                
+                <div class="cart-items-section">
+                    <!-- Perfectly Centered Empty Cart Component -->
+                    <div class="cart-empty-state" style="display:none;">
+                        <p class="cart-empty-message">Your bag is empty.</p>
+                        <a href="products.html" class="btn btn-outline" style="border-radius: 50px;">Continue Shopping</a>
+                    </div>
+
+                    <div class="cart-items" id="cartItems"></div>
+                </div>
+
+                <div class="cart-summary-section" id="cartFooter" style="display:none;">
+                    <div class="order-summary-card">
+                        <h4 class="summary-title heading-font">Order Summary</h4>
+                        <div class="summary-row">
+                            <span>Subtotal</span><span class="cartSubtotal" style="font-weight: 600;">₹0</span>
+                        </div>
+                        <hr class="summary-divider">
+                        <div class="summary-row summary-total">
+                            <span>Total</span><span class="cartTotal">₹0</span>
+                        </div>
+                        <button class="btn btn-whatsapp" style="width: 100%; justify-content: center;">Order via WhatsApp</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-col" style="flex: 1.5;">
+                    <h4 class="footer-title heading-font">happiee knots</h4>
+                    <p class="footer-text">Handcrafted gifts made with love, designed to make every moment unforgettable.</p>
+                </div>
+                <div class="footer-col" style="flex: 1;">
+                    <h4 class="footer-title">Collections</h4>
+                    <a href="products.html?category=Hampers" class="footer-link">Hampers</a>
+                    <a href="products.html?category=Wedding" class="footer-link">Wedding Sets</a>
+                    <a href="products.html?category=Birthday" class="footer-link">Birthday Surprises</a>
+                    <a href="products.html?category=Festive" class="footer-link">Festive Specials</a>
+                </div>
+                <div class="footer-col" style="flex: 1;">
+                    <h4 class="footer-title">Get in Touch</h4>
+                    <p class="footer-text">WhatsApp: +91 99999 99999</p>
+                    <p class="footer-text">hello@happieeknots.com</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2026 Happiee Knots. Made with love in India.</p>
+                <p>Handcrafted by <a href="https://dexys.in" target="_blank" class="footer-dexys-link">Dexys IT Solutions</a></p>
+            </div>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
