@@ -182,7 +182,7 @@ function renderProducts(products) {
             <div class="product-image">
                 <img src="${product.image}" alt="${product.name}">
             </div>
-            <div class="product-info">
+            <div class="product-info" style="display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
                     <div class="product-title-row">
                         <h3 class="product-name heading-font">${product.name}</h3>
@@ -190,7 +190,11 @@ function renderProducts(products) {
                     </div>
                     <p class="product-category">${product.category}</p>
                 </div>
-                <button class="product-add-btn" onclick="event.stopPropagation(); addToCart('${product.id}', 1)">Add</button>
+                
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+                    <button class="product-add-btn" onclick="event.stopPropagation(); addToCart('${product.id}', 1)">Add to Bag</button>
+                    <button class="product-add-btn" style="background: var(--color-gray-900, #111); color: white; border: none;" onclick="event.stopPropagation(); addToCart('${product.id}', 1); window.location.href='/cart';">Buy Now</button>
+                </div>
             </div>
         </div>
     `).join('');
