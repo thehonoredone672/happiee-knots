@@ -140,7 +140,7 @@
 
                 <div class="admin-form-group">
                     <label>Product Images</label>
-                    <input type="file" id="productImages" class="admin-input" accept="image/*" multiple style="padding: 0.5rem; background: var(--color-gray-50);">
+                    <input type="file" id="productImageFiles" class="admin-input" accept="image/*" multiple style="padding: 0.5rem; background: var(--color-gray-50);">
                     <p style="font-size: 0.8rem; color: var(--color-gray-500); margin-top: 5px;">Upload new images to add to the gallery.</p>
                     <div class="image-preview-gallery" id="adminImagePreview"></div>
                 </div>
@@ -317,55 +317,77 @@
             document.getElementById('adminModal').style.display = 'flex';
         }
 
-        function saveProduct() {
-            const id = document.getElementById('productId').value;
-            const name = document.getElementById('productName').value;
-            const price = parseFloat(document.getElementById('productPrice').value);
-            const description = document.getElementById('productDesc').value;
-            
-            if(!name || isNaN(price) || !description) {
-                alert("Please fill in all required fields.");
-                return;
-            }
+        async function saveProduct() {
+    const id = document.getElementById('productId').value;
+    const name = document.getElementById('productName').value;
+    const price = parseFloat(document.getElementById('productPrice').value);
+    const description = document.getElementById('productDesc').value;
+    
+    if(!name || isNaN(price) || !description) {
+        alert("Please fill in all required fields.");
+        return;
+    }
 
-            let category = document.getElementById('productCategory').value;
-            if (category === 'add_new') {
-                category = document.getElementById('newCategoryInput').value.trim();
-            }
+    let category = document.getElementById('productCategory').value;
+    if (category === 'add_new') {
+        category = document.getElementById('newCategoryInput').value.trim();
+    }
 
-            if(currentAdminPhotos.length === 0) {
-                currentAdminPhotos = ['https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=600&auto=format&fit=crop']; // Fallback
-            }
-            
-            const primaryImage = currentAdminPhotos[0];
+    // Prepare Multipart Form Data Payload 
+    const formData = new FormData();
+    if (id) formData.append('id', id);
+    formData.append('name', name);
+    formData.append('price', price);
+    formData.append('category', category);
+    formData.append('description', description);
 
-            if (id) {
-                const index = adminProducts.findIndex(p => p.id === id);
-                if (index !== -1) {
-                    adminProducts[index] = { 
-                        id, name, category, price, 
-                        image: primaryImage, 
-                        images: currentAdminPhotos, 
-                        description 
-                    };
-                }
-            } else {
-                const newId = 'prod_' + Date.now();
-                adminProducts.push({ 
-                    id: newId, name, category, price, 
-                    image: primaryImage, 
-                    images: currentAdminPhotos, 
-                    description 
-                });
-            }
-
-            localStorage.setItem('happiee_products', JSON.stringify(adminProducts));
-            
-            closeAdminModal();
-            renderAdminTable();
-            populateCategoryDropdown();
-            alert('Product saved successfully! The store is instantly updated.');
+    // Grab raw image files from HTML Input Element
+    const fileInput = document.getElementById('productImageFiles');
+    if (fileInput && fileInput.files.length > 0) {
+        for (let i = 0; i < fileInput.files.length; i++) {
+            formData.append('productImages', fileInput.files[i]);
         }
+    } else if (typeof currentAdminPhotos !== 'undefined' && currentAdminPhotos.length > 0) {
+        // Pass back existing image strings if no new files were selected
+        currentAdminPhotos.forEach(url => formData.append('existingImages', url));
+    }
+
+    try {
+        // Show user a subtle loading state while Cloudinary handles the upload
+        const saveButton = document.querySelector('.btn-save-product') || { textContent: '' };
+        const originalText = saveButton.textContent;
+        saveButton.textContent = 'Uploading...';
+
+        const response = await fetch('/api/products/save', {
+            method: 'POST', // Use POST for both; backend detects ID to handle updates
+            body: formData  // Note: DO NOT set headers! Browser automatically formats Content-Type boundary parameters
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('Product saved successfully! The store is instantly updated.');
+            
+            // Trigger UI updates
+            closeAdminModal();
+            if (typeof fetchAdminProducts === 'function') {
+                // If you fetch products from backend, invoke it here
+                fetchAdminProducts(); 
+            } else {
+                // Fallback client structural re-renders
+                renderAdminTable();
+                populateCategoryDropdown();
+            }
+        } else {
+            alert(data.message || 'Error saving product details.');
+        }
+        saveButton.textContent = originalText;
+    } catch (err) {
+        console.error('Network failure connecting to products API endpoint:', err);
+        alert('Could not synchronize product details with your server.');
+    }
+}
+
 
         function deleteProduct(id) {
             if(id === '6') {
