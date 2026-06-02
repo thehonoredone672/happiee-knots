@@ -192,7 +192,7 @@ function renderProducts(products) {
                 </div>
                 
                 <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
-                    <button class="product-add-btn" onclick="event.stopPropagation(); addToCart('${product.id}', 1)">Add to Bag</button>
+                    <button class="product-add-btn" onclick="event.stopPropagation(); addToCart('${product.id}', 1)">Add to Cart</button>
                     <button class="product-add-btn" style="background: var(--color-gray-900, #111); color: white; border: none;" onclick="event.stopPropagation(); addToCart('${product.id}', 1); window.location.href='/cart';">Buy Now</button>
                 </div>
             </div>
