@@ -9,28 +9,28 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 // Serve static assets (CSS, JS, images) from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'src')));
 
 // --- HTML PAGE ROUTES ---
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'src', 'index.html'));
 });
 
 app.get('/about', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'about.html'));
+    res.sendFile(path.join(__dirname, 'src', 'about.html'));
 });
 
 app.get('/products', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'products.html'));
+    res.sendFile(path.join(__dirname, 'src', 'products.html'));
 });
 
 app.get('/cart', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'cart.html'));
+    res.sendFile(path.join(__dirname, 'src', 'cart.html'));
 });
 
 app.get('/contact', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'contact.html'));
+    res.sendFile(path.join(__dirname, 'src', 'contact.html'));
 });
 
 // --- API ROUTES (Foundation for your E-commerce logic) ---
