@@ -18,5 +18,11 @@
   "bugs": {
     "url": "https://github.com/thehonoredone672/happiee-knots/issues"
   },
-  "homepage": "https://github.com/thehonoredone672/happiee-knots#readme"
+  "homepage": "https://github.com/thehonoredone672/happiee-knots#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.6.3"
+  }
 }
