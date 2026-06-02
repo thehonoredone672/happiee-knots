@@ -46,4 +46,17 @@ router.post('/save', upload.array('productImages', 5), async (req, res) => {
     }
 });
 
+// GET ALL PRODUCTS FROM MONGOOSE
+router.get('/all', async (req, res) => {
+    try {
+        // Fetches products sorted with the newest entries first
+        const products = await Product.find().sort({ createdAt: -1 });
+        res.json({ success: true, products });
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        res.status(500).json({ success: false, message: 'Failed to load products.' });
+    }
+});
+
+
 module.exports = router;
