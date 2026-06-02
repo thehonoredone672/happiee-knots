@@ -90,6 +90,10 @@ app.get('/contact', (req, res) => {
     res.sendFile(path.join(__dirname, 'src', 'contact.html'));
 });
 
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'src', 'admin.html'));
+});
+
 // Legacy client-routing helper backups for clean URL loading fallback links
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'src', 'login.html')));
 app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, 'src', 'signup.html')));
