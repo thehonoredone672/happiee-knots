@@ -4,7 +4,8 @@ const mongoose = require('mongoose');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path = require('path');
-const authRoutes = require('./routes/auth'); // Ensure your auth routes are placed here
+const authRoutes = require('./routes/auth'); 
+const productRoutes = require('./routes/products'); // 1. IMPORT YOUR PRODUCT ROUTE HERE
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,7 +26,7 @@ mongoose.connect(process.env.MONGODB_URI)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Express Session tracking (Stores session tokens securely in MongoDB Atlas)
+// Express Session tracking
 app.use(session({
     secret: process.env.SESSION_SECRET || 'happiee_knots_premium_secret_key',
     resave: false,
@@ -35,8 +36,8 @@ app.use(session({
         collectionName: 'sessions'
     }),
     cookie: { 
-        maxAge: 1000 * 60 * 60 * 24, // 24 Hours validity window
-        secure: false // Set to true if running on HTTPS production deployment
+        maxAge: 1000 * 60 * 60 * 24, // 24 Hours
+        secure: false 
     }
 }));
 
@@ -47,7 +48,6 @@ app.use(express.static(path.join(__dirname, 'src')));
 //          AUTHENTICATION LAYER API
 // ==========================================
 
-// Checks session state context for frontend client calls
 app.get('/api/auth/me', (req, res) => {
     if (req.session && req.session.user) {
         return res.json({ loggedIn: true, user: req.session.user });
@@ -55,7 +55,6 @@ app.get('/api/auth/me', (req, res) => {
     return res.json({ loggedIn: false });
 });
 
-// User session logging out controller redirection layer
 app.get('/api/auth/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) console.error("Session destruction token error:", err);
@@ -63,8 +62,24 @@ app.get('/api/auth/logout', (req, res) => {
     });
 });
 
-// Mount user signup/login endpoints under the base endpoint
 app.use('/api/auth', authRoutes);
+
+// ==========================================
+//                API ROUTES
+// ==========================================
+
+// 2. MOUNT YOUR PRODUCT ROUTE HERE (Fixes your frontend fetch sync error)
+app.use('/api/products', productRoutes);
+
+app.post('/api/checkout', (req, res) => {
+    const { cartItems, customerDetails } = req.body;
+    console.log("Received order for:", cartItems);
+    
+    res.status(200).json({ 
+        success: true, 
+        message: "Order received successfully!" 
+    });
+});
 
 // ==========================================
 //            HTML PAGE ROUTES
@@ -94,25 +109,11 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'src', 'admin.html'));
 });
 
-// Legacy client-routing helper backups for clean URL loading fallback links
+// Legacy client-routing helper backups
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'src', 'login.html')));
 app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, 'src', 'signup.html')));
 
-// ==========================================
-//                API ROUTES
-// ==========================================
-
-app.post('/api/checkout', (req, res) => {
-    const { cartItems, customerDetails } = req.body;
-    console.log("Received order for:", cartItems);
-    
-    res.status(200).json({ 
-        success: true, 
-        message: "Order received successfully!" 
-    });
-});
-
-// Start the server matching target requirements
+// Start the server
 app.listen(PORT, () => {
     console.log(`Server is up and running on http://localhost:${PORT}`);
 });
