@@ -571,3 +571,81 @@ function showNotification(message) {
         setTimeout(() => toast.remove(), 300);
     }, 2000);
 }
+
+function openCheckoutForm() {
+    document.getElementById("checkoutModal").style.display = "flex";
+}
+
+function closeCheckoutForm() {
+    document.getElementById("checkoutModal").style.display = "none";
+}
+
+document.getElementById("checkoutForm")
+.addEventListener("submit", function(e){
+
+    e.preventDefault();
+
+    const name =
+        document.getElementById("customerName").value;
+
+    const phone =
+        document.getElementById("customerPhone").value;
+
+    const email =
+        document.getElementById("customerEmail").value;
+
+    const address =
+        document.getElementById("customerAddress").value;
+
+    const pincode =
+        document.getElementById("customerPincode").value;
+
+    const state =
+        document.getElementById("customerState").value;
+
+    const country =
+        document.getElementById("customerCountry").value;
+
+    let orderItems = "";
+
+    cart.forEach(item => {
+        orderItems +=
+            `• ${item.name} x ${item.quantity} - ₹${item.price * item.quantity}\n`;
+    });
+
+    const total =
+        cart.reduce((sum,item)=>
+            sum + item.price * item.quantity,0);
+
+    const message =
+`🛍️ NEW ORDER
+
+👤 Customer Details
+
+Name: ${name}
+Phone: ${phone}
+Email: ${email}
+
+📍 Address
+
+${address}
+
+Pincode: ${pincode}
+State: ${state}
+Country: ${country}
+
+🛒 Order Items
+
+${orderItems}
+
+💰 Total: ₹${total}
+`;
+
+    const whatsappNumber = "918056236197";
+
+    const url =
+        `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+
+    window.open(url, "_blank");
+});
+
