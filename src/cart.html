@@ -123,6 +123,44 @@
             </div>
         </footer>
     </div>
+    <div id="checkoutModal" class="checkout-modal">
+    <div class="checkout-content">
+
+        <div class="checkout-header">
+            <h3>Order Details</h3>
+            <button onclick="closeCheckoutForm()">✕</button>
+        </div>
+
+        <form id="checkoutForm">
+
+            <input type="text" id="customerName" placeholder="Full Name" required>
+
+            <input type="tel" id="customerPhone"
+                placeholder="+91 9876543210" required>
+
+            <input type="email" id="customerEmail"
+                placeholder="Email Address" required>
+
+            <textarea id="customerAddress"
+                placeholder="Address" required></textarea>
+
+            <input type="text" id="customerPincode"
+                placeholder="Pincode" required>
+
+            <input type="text" id="customerState"
+                placeholder="State" required>
+
+            <input type="text" id="customerCountry"
+                placeholder="Country" required>
+
+            <button type="submit" class="submit-order-btn">
+                Continue to WhatsApp
+            </button>
+
+        </form>
+    </div>
+    </div>
+    
     <script src="script.js"></script>
 </body>
 </html>
