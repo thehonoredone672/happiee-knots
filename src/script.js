@@ -1,67 +1,53 @@
 // ========================================
-// SHARED SCRIPT FOR BOTH PAGES
+// SHARED SCRIPT FOR ALL PAGES
 // ========================================
 
-const PRODUCTS = [
+const DEFAULT_PRODUCTS = [
     {
-        id: '1',
-        name: 'Ruby Luxe Handbag',
-        category: 'Handbags',
-        price: 2499,
+        id: '1', name: 'Ruby Luxe Handbag', category: 'Handbags', price: 2499,
         image: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?q=80&w=600&auto=format&fit=crop',
+        images: [
+            'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?q=80&w=600&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=600&auto=format&fit=crop'
+        ],
         description: 'A beautifully structured handcrafted handbag featuring rich crimson tones and premium gold-finish hardware.'
     },
     {
-        id: '2',
-        name: 'Sunwoven Citrus Tote',
-        category: 'Handbags',
-        price: 1699,
+        id: '2', name: 'Sunwoven Citrus Tote', category: 'Handbags', price: 1699,
         image: 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=600&auto=format&fit=crop',
+        images: ['https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=600&auto=format&fit=crop'],
         description: 'A vibrant handwoven tote that blends sunny cream and citrus-orange tones for a fresh, standout look.'
     },
     {
-        id: '3',
-        name: 'Wedding Keepsake Set',
-        category: 'Wedding',
-        price: 3999,
+        id: '3', name: 'Wedding Keepsake Set', category: 'Wedding', price: 3999,
         image: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?q=80&w=600&auto=format&fit=crop',
+        images: ['https://images.unsplash.com/photo-1519225421980-715cb0215aed?q=80&w=600&auto=format&fit=crop'],
         description: 'Elegant keepsake set crafted specially for your special day. Custom initials engraved.'
     },
     {
-        id: '4',
-        name: 'Deluxe Hamper',
-        category: 'Hampers',
-        price: 3499,
-        image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=500&auto=format&fit=crop',
-        description: 'A beautifully curated gift hamper with handpicked artisan items wrapped in sustainable packaging.'
-    },
-    {
-        id: '5',
-        name: 'Festive Collection',
-        category: 'Festive',
-        price: 1899,
-        image: 'https://images.unsplash.com/photo-1577563908411-5077b6dc7624?q=80&w=600&auto=format&fit=crop',
-        description: 'Celebrate with our festive gift selections featuring sweets, diyas, and handcrafted decor.'
-    },
-    {
-        id: '6',
-        name: 'Custom Order Base',
-        category: 'Personalized',
-        price: 0, 
+        id: '6', name: 'Custom Order Base', category: 'Personalized', price: 0, 
         image: 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?q=80&w=500&auto=format&fit=crop',
+        images: ['https://images.unsplash.com/photo-1607344645866-009c320b63e0?q=80&w=500&auto=format&fit=crop'],
         description: 'Unique custom orders tailored directly to your vision.'
     }
 ];
 
+if (!localStorage.getItem('happiee_products')) {
+    localStorage.setItem('happiee_products', JSON.stringify(DEFAULT_PRODUCTS));
+}
+const PRODUCTS = JSON.parse(localStorage.getItem('happiee_products'));
+
 let cart = JSON.parse(localStorage.getItem('happiee_cart')) || [];
 let slideInterval;
 
+// Modal State
 let currentModalProductId = null;
 let currentModalQty = 1;
 let editingCartItemId = null; 
+let currentUploadedPhotos = []; // Store base64 arrays for dynamic addition/deletion in modal
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Mobile Menu
+    // Mobile Menu Toggle Logic
     const menuToggles = document.querySelectorAll('.menu-toggle');
     const mobileMenu = document.getElementById('mobileMenu');
     const mobileOverlay = document.getElementById('mobileOverlay');
@@ -98,7 +84,6 @@ function initializeHeroSlider() {
     if (slides.length === 0) return;
     
     let currentSlide = 0;
-
     slides.forEach((_, idx) => {
         const dot = document.createElement('div');
         dot.classList.add('dot');
@@ -108,7 +93,6 @@ function initializeHeroSlider() {
     });
 
     const dots = document.querySelectorAll('.dot');
-
     function goToSlide(index) {
         slides[currentSlide].classList.remove('active');
         dots[currentSlide].classList.remove('active');
@@ -118,7 +102,6 @@ function initializeHeroSlider() {
         clearInterval(slideInterval);
         startSlideShow();
     }
-
     function startSlideShow() {
         slideInterval = setInterval(() => {
             const nextSlide = (currentSlide + 1) % slides.length;
@@ -129,13 +112,20 @@ function initializeHeroSlider() {
 }
 
 // ========================================
-// PRODUCTS PAGE LOGIC
+// PRODUCTS PAGE LOGIC (with In-Card Slider)
 // ========================================
 function initializeProductsPage() {
     const collectionSearch = document.getElementById('collectionSearch');
     const categorySelect = document.getElementById('categorySelect');
     const sortSelect = document.getElementById('sortSelect');
     
+    if(categorySelect) {
+        const uniqueCategories = [...new Set(PRODUCTS.map(p => p.category))];
+        const defaultOptions = '<option value="all">All Categories</option>';
+        const dynOptions = uniqueCategories.filter(c => c !== 'Personalized').map(c => `<option value="${c}">${c}</option>`).join('');
+        categorySelect.innerHTML = defaultOptions + dynOptions;
+    }
+
     if(collectionSearch) collectionSearch.addEventListener('input', applyFilters);
     if(categorySelect) categorySelect.addEventListener('change', applyFilters);
     if(sortSelect) sortSelect.addEventListener('change', applyFilters);
@@ -177,12 +167,25 @@ function renderProducts(products) {
     const productsGrid = document.getElementById('productsGrid');
     if(!productsGrid) return;
     
-    productsGrid.innerHTML = products.map(product => `
+    productsGrid.innerHTML = products.map(product => {
+        const images = product.images || [product.image];
+        let imageHTML = images.map((img, i) => `<img src="${img}" class="${i===0 ? 'active' : ''}" data-index="${i}">`).join('');
+        
+        let sliderNavHTML = '';
+        if(images.length > 1) {
+            sliderNavHTML = `
+                <button class="product-img-nav prev" onclick="event.stopPropagation(); slideProductImg(this, -1)">&#10094;</button>
+                <button class="product-img-nav next" onclick="event.stopPropagation(); slideProductImg(this, 1)">&#10095;</button>
+            `;
+        }
+
+        return `
         <div class="product-card" onclick="openProductModal('${product.id}')">
             <div class="product-image">
-                <img src="${product.image}" alt="${product.name}">
+                ${imageHTML}
+                ${sliderNavHTML}
             </div>
-            <div class="product-info" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="product-info">
                 <div>
                     <div class="product-title-row">
                         <h3 class="product-name heading-font">${product.name}</h3>
@@ -190,15 +193,26 @@ function renderProducts(products) {
                     </div>
                     <p class="product-category">${product.category}</p>
                 </div>
-                
-                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
-                    <button class="product-add-btn" onclick="event.stopPropagation(); addToCart('${product.id}', 1)">Add to Cart</button>
-                    <button class="product-add-btn" style="background: var(--color-gray-900, #111); color: white; border: none;" onclick="event.stopPropagation(); addToCart('${product.id}', 1); window.location.href='/cart';">Buy Now</button>
-                </div>
+                <button class="product-add-btn" onclick="event.stopPropagation(); addToCart('${product.id}', 1)">Add</button>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
+
+window.slideProductImg = (btn, direction) => {
+    const container = btn.closest('.product-image');
+    const images = container.querySelectorAll('img');
+    let currentIndex = Array.from(images).findIndex(img => img.classList.contains('active'));
+    
+    images[currentIndex].classList.remove('active');
+    
+    let nextIndex = currentIndex + direction;
+    if (nextIndex < 0) nextIndex = images.length - 1;
+    if (nextIndex >= images.length) nextIndex = 0;
+    
+    images[nextIndex].classList.add('active');
+}
+
 
 // ========================================
 // DYNAMIC MODAL GENERATION & BINDING
@@ -220,7 +234,7 @@ function ensureModalMarkup() {
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line>
                             </svg>
                             <p class="upload-title heading-font">Upload Reference Photo(s)</p>
-                            <p class="upload-subtitle text-muted">Click or drop multiple images here</p>
+                            <p class="upload-subtitle text-muted">Click or drop multiple images here to add to gallery.</p>
                         </label>
                         <div id="uploadFileGallery"></div>
                     </div>
@@ -270,7 +284,6 @@ function bindModalEvents() {
         if(e.target === document.getElementById('productModal')) closeProductModal();
     });
     
-    // Standard Bindings
     document.getElementById('modalQtyMinus').addEventListener('click', () => updateModalQty(-1));
     document.getElementById('modalQtyPlus').addEventListener('click', () => updateModalQty(1));
     document.getElementById('modalAddToCartBtn').addEventListener('click', () => {
@@ -278,25 +291,23 @@ function bindModalEvents() {
         closeProductModal();
     });
 
-    // Custom Bindings
     document.getElementById('modalCustomQtyMinus').addEventListener('click', () => updateModalQty(-1));
     document.getElementById('modalCustomQtyPlus').addEventListener('click', () => updateModalQty(1));
     
     const photoUploadInput = document.getElementById('customPhotos');
     if (photoUploadInput) {
         photoUploadInput.addEventListener('change', function() {
-            const galleryContainer = document.getElementById('uploadFileGallery');
-            galleryContainer.innerHTML = ''; 
-            
             if (this.files && this.files.length > 0) {
-                Array.from(this.files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const img = document.createElement('img');
-                        img.src = e.target.result;
-                        galleryContainer.appendChild(img);
-                    }
-                    reader.readAsDataURL(file);
+                const photoPromises = Array.from(this.files).map(file => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(file);
+                    });
+                });
+                Promise.all(photoPromises).then(base64Photos => {
+                    currentUploadedPhotos = currentUploadedPhotos.concat(base64Photos);
+                    renderModalUploadGallery();
                 });
             }
         });
@@ -304,47 +315,45 @@ function bindModalEvents() {
 
     document.getElementById('modalAddCustomToCartBtn').addEventListener('click', () => {
         const customDetails = document.getElementById('customDetails').value;
-        const files = document.getElementById('customPhotos').files;
-        
-        const photoPromises = Array.from(files).map(file => {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.readAsDataURL(file);
-            });
-        });
+        if(!customDetails.trim() && currentUploadedPhotos.length === 0) {
+            alert("Please provide customization details or upload a photo before adding to bag.");
+            return;
+        }
 
-        Promise.all(photoPromises).then(base64Photos => {
-            let finalPhotos = base64Photos;
-            
-            if(editingCartItemId && files.length === 0) {
-                const existingItem = cart.find(i => i.cartItemId === editingCartItemId);
-                if(existingItem && existingItem.customPhotosBase64) {
-                    finalPhotos = existingItem.customPhotosBase64;
-                }
+        if(editingCartItemId) {
+            const item = cart.find(i => i.cartItemId === editingCartItemId);
+            if(item) {
+                item.quantity = currentModalQty;
+                item.customDetailsText = customDetails;
+                item.customPhotosBase64 = currentUploadedPhotos;
             }
-
-            if(!customDetails.trim() && finalPhotos.length === 0) {
-                alert("Please provide customization details or upload a photo before adding to bag.");
-                return;
-            }
-
-            if(editingCartItemId) {
-                const item = cart.find(i => i.cartItemId === editingCartItemId);
-                if(item) {
-                    item.quantity = currentModalQty;
-                    item.customDetailsText = customDetails;
-                    item.customPhotosBase64 = finalPhotos;
-                }
-                saveAndUpdateCart();
-                closeProductModal();
-                showNotification(`Cart Updated!`);
-            } else {
-                addToCart(currentModalProductId, currentModalQty, customDetails, finalPhotos);
-                closeProductModal();
-            }
-        });
+            saveAndUpdateCart();
+            closeProductModal();
+            showNotification(`Cart Updated!`);
+        } else {
+            addToCart(currentModalProductId, currentModalQty, customDetails, currentUploadedPhotos);
+            closeProductModal();
+        }
     });
+}
+
+function renderModalUploadGallery() {
+    const galleryContainer = document.getElementById('uploadFileGallery');
+    galleryContainer.innerHTML = ''; 
+    currentUploadedPhotos.forEach((src, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'thumbnail-wrapper';
+        wrapper.innerHTML = `
+            <img src="${src}">
+            <button class="remove-thumb-btn" onclick="removeModalPhoto(${index})">&times;</button>
+        `;
+        galleryContainer.appendChild(wrapper);
+    });
+}
+
+window.removeModalPhoto = (index) => {
+    currentUploadedPhotos.splice(index, 1);
+    renderModalUploadGallery();
 }
 
 window.openProductModal = (id) => {
@@ -354,6 +363,7 @@ window.openProductModal = (id) => {
     currentModalProductId = product.id;
     currentModalQty = 1;
     editingCartItemId = null; 
+    currentUploadedPhotos = []; // Reset global photo tracker
 
     document.getElementById('modalImg').src = product.image;
     document.getElementById('modalCategory').textContent = product.category;
@@ -396,6 +406,7 @@ window.editCustomOrder = (cartItemId) => {
     editingCartItemId = cartItemId;
     currentModalProductId = item.id;
     currentModalQty = item.quantity;
+    currentUploadedPhotos = item.customPhotosBase64 ? [...item.customPhotosBase64] : [];
     
     document.getElementById('modalCategory').textContent = item.category;
     document.getElementById('modalTitle').textContent = item.name;
@@ -410,16 +421,7 @@ window.editCustomOrder = (cartItemId) => {
     document.getElementById('customDetails').value = item.customDetailsText || '';
     document.getElementById('modalAddCustomToCartBtn').textContent = "Update Custom Order";
     syncModalQtyDisplay();
-
-    const previewContainer = document.getElementById('uploadFileGallery');
-    previewContainer.innerHTML = '';
-    if(item.customPhotosBase64 && item.customPhotosBase64.length > 0) {
-        item.customPhotosBase64.forEach(src => {
-            const img = document.createElement('img');
-            img.src = src;
-            previewContainer.appendChild(img);
-        });
-    }
+    renderModalUploadGallery();
 
     const modal = document.getElementById('productModal');
     modal.style.display = 'flex';
@@ -444,9 +446,8 @@ function syncModalQtyDisplay() {
 }
 
 // ========================================
-// CART LOGIC
+// CART LOGIC 
 // ========================================
-
 window.addToCart = (id, quantity = 1, customDetailsText = null, customPhotosBase64 = []) => {
     const product = PRODUCTS.find(p => p.id === id);
     const cartItemId = (customDetailsText || customPhotosBase64.length > 0) ? `${id}-${Date.now()}` : id;
@@ -490,15 +491,15 @@ function updateCartUI() {
 
     if (cart.length === 0) {
         if(cartPageContainer) cartPageContainer.classList.add('is-empty');
-        document.querySelectorAll('.cart-empty-state').forEach(el => el.style.display = 'flex');
-        document.querySelectorAll('.cart-items').forEach(el => el.innerHTML = '');
-        document.querySelectorAll('.cart-summary-section').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.cart-controls').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('#cartEmpty').forEach(el => el.style.display = 'flex');
+        document.querySelectorAll('#cartItems').forEach(el => el.innerHTML = '');
+        document.querySelectorAll('#cartFooter').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('#cartControls').forEach(el => el.style.display = 'none');
     } else {
         if(cartPageContainer) cartPageContainer.classList.remove('is-empty');
-        document.querySelectorAll('.cart-empty-state').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.cart-summary-section').forEach(el => el.style.display = 'block');
-        document.querySelectorAll('.cart-controls').forEach(el => el.style.display = 'flex');
+        document.querySelectorAll('#cartEmpty').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('#cartFooter').forEach(el => el.style.display = 'block');
+        document.querySelectorAll('#cartControls').forEach(el => el.style.display = 'flex');
         renderCartItems();
     }
 }
@@ -522,20 +523,22 @@ function renderCartItems() {
                     <div>
                         <div class="cart-item-name heading-font">${item.name}</div>
                         <div class="cart-item-cat">${item.category}</div>
-                        ${isPersonalized ? `
-                            <div class="cart-item-custom-info">
-                                <p style="font-size: 0.85rem; color: var(--color-gray-700); margin-bottom: 4px;"><b>Notes:</b> ${item.customDetailsText || 'None'}</p>
-                                ${!hasPhotos ? '<p style="font-size: 0.8rem; color: var(--color-pink-600); margin-bottom: 6px;">No photo uploaded</p>' : `
-                                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; cursor:pointer;" onclick="editCustomOrder('${item.cartItemId}')">
-                                    ${item.customPhotosBase64.map(src => `<img src="${src}" style="width: 32px; height: 32px; border-radius: 4px; object-fit: cover; border: 1px solid var(--color-pink-200);">`).join('')}
-                                </div>
-                                `}
-                                <button onclick="editCustomOrder('${item.cartItemId}')" style="font-size: 0.8rem; font-weight: 600; color: var(--color-pink-600); text-decoration: underline; padding: 0; background: none; border: none; cursor: pointer;">Edit Personalization</button>
-                            </div>
-                        ` : ''}
                     </div>
                     ${item.price > 0 ? `<div class="cart-item-price">₹${(item.price * item.quantity).toLocaleString()}</div>` : `<div class="cart-item-price">TBD</div>`}
                 </div>
+                
+                ${isPersonalized ? `
+                    <div class="cart-item-custom-info">
+                        <p style="font-size: 0.85rem; color: var(--color-gray-700); margin-bottom: 6px;"><b>Notes:</b> ${item.customDetailsText || 'None'}</p>
+                        ${!hasPhotos ? '<p style="font-size: 0.8rem; color: var(--color-pink-600); margin-bottom: 6px;">No photo uploaded.</p>' : `
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; cursor:pointer;" onclick="editCustomOrder('${item.cartItemId}')">
+                            ${item.customPhotosBase64.map(src => `<img src="${src}" style="width: 32px; height: 32px; border-radius: 4px; object-fit: cover; border: 1px solid var(--color-pink-200);">`).join('')}
+                        </div>
+                        `}
+                        <button onclick="editCustomOrder('${item.cartItemId}')" style="font-size: 0.8rem; font-weight: 600; color: var(--color-pink-600); text-decoration: underline; padding: 0; background: none; border: none; cursor: pointer;">Edit Personalization</button>
+                    </div>
+                ` : ''}
+
                 <div class="cart-item-actions">
                     <div class="qty-selector">
                         <button class="qty-btn" onclick="updateCartItemQty('${item.cartItemId}', -1)">−</button>
@@ -571,81 +574,3 @@ function showNotification(message) {
         setTimeout(() => toast.remove(), 300);
     }, 2000);
 }
-
-function openCheckoutForm() {
-    document.getElementById("checkoutModal").style.display = "flex";
-}
-
-function closeCheckoutForm() {
-    document.getElementById("checkoutModal").style.display = "none";
-}
-
-document.getElementById("checkoutForm")
-.addEventListener("submit", function(e){
-
-    e.preventDefault();
-
-    const name =
-        document.getElementById("customerName").value;
-
-    const phone =
-        document.getElementById("customerPhone").value;
-
-    const email =
-        document.getElementById("customerEmail").value;
-
-    const address =
-        document.getElementById("customerAddress").value;
-
-    const pincode =
-        document.getElementById("customerPincode").value;
-
-    const state =
-        document.getElementById("customerState").value;
-
-    const country =
-        document.getElementById("customerCountry").value;
-
-    let orderItems = "";
-
-    cart.forEach(item => {
-        orderItems +=
-            `• ${item.name} x ${item.quantity} - ₹${item.price * item.quantity}\n`;
-    });
-
-    const total =
-        cart.reduce((sum,item)=>
-            sum + item.price * item.quantity,0);
-
-    const message =
-`🛍️ NEW ORDER
-
-👤 Customer Details
-
-Name: ${name}
-Phone: ${phone}
-Email: ${email}
-
-📍 Address
-
-${address}
-
-Pincode: ${pincode}
-State: ${state}
-Country: ${country}
-
-🛒 Order Items
-
-${orderItems}
-
-💰 Total: ₹${total}
-`;
-
-    const whatsappNumber = "918056236197";
-
-    const url =
-        `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-
-    window.open(url, "_blank");
-});
-
