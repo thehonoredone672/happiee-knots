@@ -7,28 +7,30 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
     <div class="app">
-        <!-- Header -->
         <header class="header">
             <div class="header-container">
                 <div class="header-left">
-                    <h1 class="logo">
+                    <a href="/index" class="logo" style="color:inherit;">
+                        <img src="../public/logo.jpeg" class="logo-img" alt="Logo">
                         <span class="logo-main">happiee</span> knots
-                    </h1>
+                    </a>
                 </div>
 
                 <nav class="desktop-nav">
-                    <a href="index.html" class="nav-link">HOME</a>
-                    <a href="products.html" class="nav-link active">PRODUCTS</a>
-                    <a href="about.html" class="nav-link">ABOUT US</a>
+                    <a href="/index" class="nav-link">HOME</a>
+                    <a href="/products" class="nav-link active">PRODUCTS</a>
+                    <a href="/about" class="nav-link">ABOUT US</a>
                 </nav>
 
                 <div class="header-right">
-                    <a href="#" class="nav-link hide-mobile">LOGIN</a>
-                    <button class="btn-signup hide-mobile">SIGN UP</button>
+                    <a href="/login" class="nav-link hide-mobile">LOGIN</a>
+                    <a href="/signup">
+                        <button class="btn-signup hide-mobile">SIGN UP</button>
+                    </a>
                     
                     <a href="https://wa.me/919999999999" target="_blank" class="icon-btn" aria-label="Contact via WhatsApp">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -36,7 +38,7 @@
                         </svg>
                     </a>
                     
-                    <a href="cart.html" class="icon-btn cart-btn" aria-label="Cart">
+                    <a href="/cart" class="icon-btn cart-btn" aria-label="Cart">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
                             <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -53,20 +55,24 @@
             <div class="mobile-overlay" id="mobileOverlay"></div>
             <div class="mobile-menu" id="mobileMenu">
                 <button class="mobile-menu-close" id="mobileMenuClose">&times;</button>
-                <a href="index.html" class="mobile-nav-link">Home</a>
-                <a href="products.html" class="mobile-nav-link active">Products</a>
-                <a href="about.html" class="mobile-nav-link">About Us</a>
-                <a href="https://wa.me/919999999999" class="mobile-nav-link">Contact</a>
-                <a href="#" class="mobile-nav-link">Login</a>
+                <a href="/index" class="mobile-nav-link">Home</a>
+                <a href="/products" class="mobile-nav-link active">Products</a>
+                <a href="/about" class="mobile-nav-link">About Us</a>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 10px 20px;">
+                
+                <a href="/login" class="mobile-nav-link">Login</a>
+                <a href="/signup" class="mobile-nav-link">Sign Up</a>
+                <a href="https://wa.me/919999999999" target="_blank" class="mobile-nav-link">Contact (WhatsApp)</a>
             </div>
         </header>
 
         <main class="main-content">
-            <section class="personalized-banner">
+            <section class="personalized-banner" style="margin-top: 1.5rem;">
                 <div class="banner-content">
                     <h3 class="heading-font">Looking for a Personalized Gift?</h3>
-                    <p>We craft uniquely customized pieces. Just upload your reference photo and tell us your vision!</p>
-                    <button class="btn btn-outline" onclick="openProductModal('6')" style="border-radius: 50px;">Create Custom Order</button>
+                    <p>We craft uniquely customized pieces. Just upload your reference photos and tell us your vision!</p>
+                    <button class="btn btn-outline" onclick="openProductModal('6')" style="border-radius: 50px; border: 2px solid var(--color-pink-600); color: var(--color-pink-600); font-weight: 700;">Create Custom Order</button>
                 </div>
             </section>
 
@@ -86,12 +92,7 @@
                     </div>
                     <div class="controls-selects-row">
                         <select id="categorySelect" class="collection-select">
-                            <option value="all">All Categories</option>
-                            <option value="Hampers">Hampers</option>
-                            <option value="Wedding">Wedding</option>
-                            <option value="Birthday">Birthday</option>
-                            <option value="Festive">Festive</option>
-                        </select>
+                            </select>
                         <select id="sortSelect" class="collection-select">
                             <option value="newest">Newest First</option>
                             <option value="price-low">Price: Low to High</option>
@@ -101,23 +102,25 @@
                 </div>
 
                 <div class="products-grid" id="productsGrid">
-                    <!-- JS renders products here -->
-                </div>
+                    </div>
             </section>
         </main>
 
         <footer class="footer">
             <div class="footer-content">
                 <div class="footer-col" style="flex: 1.5;">
-                    <h4 class="footer-title heading-font">happiee knots</h4>
+                    <h4 class="footer-title heading-font">
+                        <img src="../public/logo.jpeg" class="logo-img" alt="Logo" style="display:inline; width:24px; height:24px; vertical-align:middle; margin-right:5px;">
+                        happiee knots
+                    </h4>
                     <p class="footer-text">Handcrafted gifts made with love, designed to make every moment unforgettable.</p>
                 </div>
                 <div class="footer-col" style="flex: 1;">
                     <h4 class="footer-title">Collections</h4>
-                    <a href="products.html?category=Hampers" class="footer-link">Gift Hampers</a>
-                    <a href="products.html?category=Wedding" class="footer-link">Wedding Sets</a>
-                    <a href="products.html?category=Birthday" class="footer-link">Birthday Surprises</a>
-                    <a href="products.html?category=Festive" class="footer-link">Festive Specials</a>
+                    <a href="/products?category=Hampers" class="footer-link">Gift Hampers</a>
+                    <a href="/products?category=Wedding" class="footer-link">Wedding Sets</a>
+                    <a href="/products?category=Birthday" class="footer-link">Birthday Surprises</a>
+                    <a href="/products?category=Festive" class="footer-link">Festive Specials</a>
                 </div>
                 <div class="footer-col" style="flex: 1;">
                     <h4 class="footer-title">Get in Touch</h4>
@@ -131,6 +134,6 @@
             </div>
         </footer>
     </div>
-    <script src="script.js"></script>
+    <script src="/script.js"></script>
 </body>
 </html>
