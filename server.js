@@ -32,7 +32,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'happieeknotssecretkey',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }), // Keeps session data in MongoDB Atlas
+    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }), // Keeps session data in MongoDB Atlas
     cookie: {
         secure: true, // Requires true on Render because it runs over HTTPS
         sameSite: 'none', // Needed for cross-domain cookie passing if frontend/backend are split
