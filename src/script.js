@@ -747,6 +747,54 @@ async function checkUserAuthentication() {
     }
 }
 
+
+document.addEventListener('DOMContentLoaded', () => {
+    syncNavbarSessionState();
+});
+
+async function syncNavbarSessionState() {
+    try {
+        // Query the custom endpoint you created on your Express backend
+        const response = await fetch('/api/auth/me', { method: 'GET' });
+        const data = await response.json();
+
+        const authHeaderContainer = document.getElementById('authHeaderContainer');
+        const mobileAuthContainer = document.getElementById('mobileAuthContainer');
+
+        if (data.success && data.user) {
+            // 1. Calculate the user's name initials dynamically (e.g., "Naveen Kumar" -> "NK")
+            const initials = data.user.name
+                .split(' ')
+                .map(part => part[0])
+                .join('')
+                .substring(0, 2)
+                .toUpperCase();
+
+            // 2. Wipe the login/signup buttons and inject your premium round badge
+            if (authHeaderContainer) {
+                authHeaderContainer.innerHTML = `
+                    <a href="/profile" class="user-profile-badge" title="View Profile">
+                        ${initials}
+                    </a>
+                `;
+            }
+
+            // 3. Update the slide-out mobile drawer view safely too
+            if (mobileAuthContainer) {
+                mobileAuthContainer.innerHTML = `
+                    <div style="padding: 1rem 0; border-top: 1px solid var(--color-pink-100); width: 100%;">
+                        <span class="mobile-nav-link" style="color: var(--color-black); font-size: 1rem;">Hello, ${data.user.name.split(' ')[0]}</span>
+                        <a href="/api/auth/logout" class="mobile-nav-link" style="color: var(--color-pink-600); font-size: 1rem; padding-top: 0.5rem;">Logout</a>
+                    </div>
+                `;
+            }
+        }
+    } catch (err) {
+        console.error("Navbar structural authorization state synchronization drop:", err);
+    }
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
     updateNavbarSession();
 });
