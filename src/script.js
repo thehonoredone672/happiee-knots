@@ -349,27 +349,46 @@ window.removeModalPhoto = (index) => {
     renderModalUploadGallery();
 }
 
-window.openProductModal = (id) => {
-    const product = PRODUCTS.find(
-        p => p.id === id || p._id === id
-    );
 
+window.openProductModal = (id) => {
+    // 1. FIXED: If it's the personalized custom order button, create a virtual product object
+    let product;
+    if (id === '6') {
+        product = {
+            id: '6',
+            _id: '6',
+            name: 'Custom Order Base',
+            category: 'Personalized',
+            price: 0,
+            description: 'Unique custom orders tailored directly to your vision.'
+        };
+    } else {
+        // Otherwise, look for the standard product from your live fetched array
+        product = PRODUCTS.find(p => p.id === id || p._id === id);
+    }
+
+    // 2. The safety guard clause stays happy now!
     if(!product) return;
 
     currentModalProductId = product._id || product.id;
     currentModalQty = 1;
     editingCartItemId = null; 
-    currentUploadedPhotos = []; // Reset global photo tracker
+    currentUploadedPhotos = []; 
 
-    document.getElementById('modalImg').src =
-    product.images?.[0] || product.image || '';
+    // 3. FIXED: Safe-guard text/source elements against null values for custom orders
+    const modalImgEl = document.getElementById('modalImg');
+    if (modalImgEl) {
+        modalImgEl.src = product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?q=80&w=500';
+    }
+    
     document.getElementById('modalCategory').textContent = product.category;
     document.getElementById('modalTitle').textContent = product.name;
-    document.getElementById('modalPrice').textContent = `₹${product.price.toLocaleString()}`;
+    document.getElementById('modalPrice').textContent = product.price > 0 ? `₹${product.price.toLocaleString()}` : 'Custom Pricing';
     document.getElementById('modalDesc').textContent = product.description;
     
-    syncModalQtyDisplay();
+    if (typeof syncModalQtyDisplay === 'function') syncModalQtyDisplay();
 
+    // Your existing panel toggle blocks (Personalized vs Standard) continue perfectly below...
     if (product.category === 'Personalized') {
         document.getElementById('standardLeftArea').style.display = 'none';
         document.getElementById('standardDetailsArea').style.display = 'none';
@@ -395,6 +414,8 @@ window.openProductModal = (id) => {
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 };
+
+
 
 window.editCustomOrder = (cartItemId) => {
     const item = cart.find(i => i.cartItemId === cartItemId);
