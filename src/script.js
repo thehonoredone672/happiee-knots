@@ -580,15 +580,57 @@ function showNotification(message) {
 }
 
 
-window.openCheckoutForm = function() {
-    document.getElementById('checkoutModal').style.display = 'flex';
-    document.body.style.overflow = 'hidden'; // Prevents background scrolling
-};
+document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+    e.preventDefault(); // Prevents the page from reloading
 
-window.closeCheckoutForm = function() {
-    document.getElementById('checkoutModal').style.display = 'none';
-    document.body.style.overflow = ''; // Restores background scrolling
-};
+    // 1. Grab all the form input values
+    const name = document.getElementById('customerName').value;
+    const phone = document.getElementById('customerPhone').value;
+    const address = document.getElementById('customerAddress').value;
+    const pincode = document.getElementById('customerPincode').value;
+    const state = document.getElementById('customerState').value;
+    const country = document.getElementById('customerCountry').value;
+
+    // 2. Build a beautifully formatted WhatsApp text message
+    let textMessage = `*NEW ORDER - HAPPIEE KNOTS*\n\n`;
+    textMessage += `*📦 Customer Details:*\n`;
+    textMessage += `• Name: ${name}\n`;
+    textMessage += `• Phone: ${phone}\n`;
+    textMessage += `• Address: ${address}, ${state} - ${pincode}, ${country}\n\n`;
+    textMessage += `*🛍️ Items Ordered:*\n`;
+
+    let grandTotal = 0;
+    
+    // Loops through your active cart array
+    cart.forEach((item, index) => {
+        const itemTotal = item.price * item.quantity;
+        grandTotal += itemTotal;
+        textMessage += `${index + 1}. ${item.name} (x${item.quantity}) - ₹${itemTotal.toLocaleString('en-IN')}\n`;
+        if (item.customDetailsText) {
+            textMessage += `   _Customization: ${item.customDetailsText}_\n`;
+        }
+    });
+
+    textMessage += `\n*💵 Grand Total: ₹${grandTotal.toLocaleString('en-IN')}*`;
+
+    // 3. URL Encode the text message so characters spaces linebreaks parse correctly
+    const encodedMessage = encodeURIComponent(textMessage);
+    
+    // Replace '919999999999' with your actual business phone number with country code
+    const whatsAppLink = `https://wa.me/919999999999?text=${encodedMessage}`;
+
+    // 4. Clear the shopping bag local state since the order is placed
+    cart = [];
+    localStorage.setItem('happiee_cart', JSON.stringify(cart));
+    
+    // 5. Close the form overlay and redirect to WhatsApp
+    closeCheckoutForm();
+    window.open(whatsAppLink, '_blank');
+    
+    // Refresh your cart page view parameters instantly
+    if (typeof renderCartPage === 'function') renderCartPage();
+});
+
 
 
 
