@@ -93,9 +93,12 @@ async function initializeProductsPage() {
         const response = await fetch('/api/products/all');
         const data = await response.json();
 
-        if (data.success && data.products) {
-            PRODUCTS = data.products;
-        }
+    if (data.success && data.products) {
+    PRODUCTS = data.products.map(product => ({
+        ...product,
+        id: product._id
+    }));
+    }
     } catch (err) {
         console.error("Failed synchronizing real-time catalog from MongoDB database instance:", err);
     }
@@ -153,7 +156,12 @@ function renderProducts(products) {
     if(!productsGrid) return;
     
     productsGrid.innerHTML = products.map(product => {
-        const images = product.images || [product.image];
+        const images =
+    product.images?.length
+        ? product.images
+        : product.image
+        ? [product.image]
+        : [];
         let imageHTML = images.map((img, i) => `<img src="${img}" class="${i===0 ? 'active' : ''}" data-index="${i}">`).join('');
         
         let sliderNavHTML = '';
@@ -342,7 +350,10 @@ window.removeModalPhoto = (index) => {
 }
 
 window.openProductModal = (id) => {
-    const product = PRODUCTS.find(p => p.id === id);
+    const product = PRODUCTS.find(
+        p => p.id === id || p._id === id
+    );
+
     if(!product) return;
 
     currentModalProductId = product.id;
@@ -350,7 +361,8 @@ window.openProductModal = (id) => {
     editingCartItemId = null; 
     currentUploadedPhotos = []; // Reset global photo tracker
 
-    document.getElementById('modalImg').src = product.image;
+    document.getElementById('modalImg').src =
+    product.images?.[0] || product.image || '';
     document.getElementById('modalCategory').textContent = product.category;
     document.getElementById('modalTitle').textContent = product.name;
     document.getElementById('modalPrice').textContent = `₹${product.price.toLocaleString()}`;
@@ -434,7 +446,14 @@ function syncModalQtyDisplay() {
 // CART LOGIC 
 // ========================================
 window.addToCart = (id, quantity = 1, customDetailsText = null, customPhotosBase64 = []) => {
-    const product = PRODUCTS.find(p => p.id === id);
+    const product = PRODUCTS.find(
+        p => p.id === id || p._id === id
+    );
+
+    if (!product) {
+        console.error("Product not found:", id);
+        return;
+    }
     const cartItemId = (customDetailsText || customPhotosBase64.length > 0) ? `${id}-${Date.now()}` : id;
     
     const existing = cart.find(item => item.cartItemId === cartItemId);
