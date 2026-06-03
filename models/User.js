@@ -21,16 +21,16 @@ const userSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// Pre-save hook to hash passwords automatically before saving to Atlas
-userSchema.pre('save', async function(next) {
-    if (!this.isModified('password')) return next();
-    try {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-        next();
-    } catch (err) {
-        next(err);
-    }
+// ========================================================
+// FIXED: CLEAN REMOVAL OF THE 'next' ARGUMENT FROM ASYNC HOOKS
+// ========================================================
+userSchema.pre('save', async function() {
+    // In Mongoose 9.x async middleware, do not use the next() callback argument. 
+    // Simply use return rules to flow execution onward cleanly.
+    if (!this.isModified('password')) return;
+
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
 });
 
 // Instance method to compare password during login
