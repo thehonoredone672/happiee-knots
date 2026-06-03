@@ -8,31 +8,31 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
     <div class="app">
-        <!-- Header -->
         <header class="header">
             <div class="header-container">
                 <div class="header-left">
-                    <h1 class="logo">
+                    <a href="/index" class="logo" style="color:inherit;">
+                        <img src="../public/logo.jpeg" class="logo-img" alt="Logo">
                         <span class="logo-main">happiee</span> knots
-                    </h1>
+                    </a>
                 </div>
 
                 <nav class="desktop-nav">
-                    <a href="index.html" class="nav-link active">HOME</a>
-                    <a href="products.html" class="nav-link">PRODUCTS</a>
-                    <a href="about.html" class="nav-link">ABOUT US</a>
+                    <a href="/index" class="nav-link active">HOME</a>
+                    <a href="/products" class="nav-link">PRODUCTS</a>
+                    <a href="/about" class="nav-link">ABOUT US</a>
                 </nav>
 
                 <div class="header-right">
-                    <a href="login.html" class="nav-link hide-mobile">LOGIN</a>
-                    <a href="signup.html">
-  <button class="btn-signup hide-mobile">SIGN UP</button>
+                    <a href="/login" class="nav-link hide-mobile">LOGIN</a>
+                    <a href="/signup">
+                        <button class="btn-signup hide-mobile">SIGN UP</button>
                     </a>
-                    
                     
                     <a href="https://wa.me/919999999999" target="_blank" class="icon-btn" aria-label="Contact via WhatsApp">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -40,7 +40,7 @@
                         </svg>
                     </a>
                     
-                    <a href="cart.html" class="icon-btn cart-btn" aria-label="Cart">
+                    <a href="/cart" class="icon-btn cart-btn" aria-label="Cart">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
                             <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -57,11 +57,11 @@
             <div class="mobile-overlay" id="mobileOverlay"></div>
             <div class="mobile-menu" id="mobileMenu">
                 <button class="mobile-menu-close" id="mobileMenuClose">&times;</button>
-                <a href="index.html" class="mobile-nav-link active">Home</a>
-                <a href="products.html" class="mobile-nav-link">Products</a>
-                <a href="about.html" class="mobile-nav-link">About Us</a>
+                <a href="/index" class="mobile-nav-link active">Home</a>
+                <a href="/products" class="mobile-nav-link">Products</a>
+                <a href="/about" class="mobile-nav-link">About Us</a>
                 <a href="https://wa.me/919999999999" class="mobile-nav-link">Contact</a>
-                <a href="login.html" class="mobile-nav-link">Login</a>
+                <a href="/login" class="mobile-nav-link">Login</a>
             </div>
         </header>
 
@@ -74,7 +74,7 @@
                             <h2 class="hero-title heading-font">Gifts that feel <br><span class="highlight">personally yours</span></h2>
                             <p class="hero-description">Every piece lovingly handcrafted and wrapped with care. From birthdays to weddings, find the perfect gift for every moment.</p>
                             <div class="hero-buttons">
-                                <a href="products.html" class="btn btn-primary">DISCOVER NOW</a>
+                                <a href="/products" class="btn btn-primary">DISCOVER NOW</a>
                             </div>
                         </div>
                         <div class="hero-image">
@@ -90,7 +90,7 @@
                             <h2 class="hero-title heading-font">Unbox pure <br><span class="highlight">joy this season</span></h2>
                             <p class="hero-description">Curated hampers featuring artisanal treats and beautiful keepsakes. The perfect surprise for your loved ones.</p>
                             <div class="hero-buttons">
-                                <a href="products.html?category=Hampers" class="btn btn-primary">EXPLORE HAMPERS</a>
+                                <a href="/products?category=Hampers" class="btn btn-primary">EXPLORE HAMPERS</a>
                             </div>
                         </div>
                         <div class="hero-image">
@@ -123,25 +123,25 @@
                 </div>
 
                 <div class="collections-grid">
-                    <a href="products.html?category=Hampers" class="collection-card">
+                    <a href="/products?category=Hampers" class="collection-card">
                         <img src="https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=400&auto=format&fit=crop" alt="Hampers">
                         <h3 class="heading-font">Hampers</h3>
                     </a>
-                    <a href="products.html?category=Wedding" class="collection-card">
+                    <a href="/products?category=Wedding" class="collection-card">
                         <img src="https://images.unsplash.com/photo-1519225421980-715cb0215aed?q=80&w=400&auto=format&fit=crop" alt="Wedding">
                         <h3 class="heading-font">Wedding</h3>
                     </a>
-                    <a href="products.html" class="collection-card">
+                    <a href="/products" class="collection-card">
                         <img src="https://images.unsplash.com/photo-1607344645866-009c320b63e0?q=80&w=400&auto=format&fit=crop" alt="Personalized">
                         <h3 class="heading-font">Personalized</h3>
                     </a>
-                    <a href="products.html?category=Festive" class="collection-card">
+                    <a href="/products?category=Festive" class="collection-card">
                         <img src="https://images.unsplash.com/photo-1577563908411-5077b6dc7624?q=80&w=400&auto=format&fit=crop" alt="Festive">
                         <h3 class="heading-font">Festive</h3>
                     </a>
                 </div>
                 <div style="text-align: center; margin-top: 2rem;">
-                    <a href="products.html" class="btn btn-outline" style="border-radius: 50px;">Shop All Collections</a>
+                    <a href="/products" class="btn btn-outline" style="border-radius: 50px;">Shop All Collections</a>
                 </div>
             </section>
 
@@ -184,15 +184,18 @@
         <footer class="footer">
             <div class="footer-content">
                 <div class="footer-col" style="flex: 1.5;">
-                    <h4 class="footer-title heading-font">happiee knots</h4>
+                    <h4 class="footer-title heading-font">
+                        <img src="../public/logo.jpeg" class="logo-img" alt="Logo" style="display:inline; width:24px; height:24px; vertical-align:middle; margin-right:5px;">
+                        happiee knots
+                    </h4>
                     <p class="footer-text">Handcrafted gifts made with love, designed to make every moment unforgettable.</p>
                 </div>
                 <div class="footer-col" style="flex: 1;">
                     <h4 class="footer-title">Collections</h4>
-                    <a href="products.html?category=Hampers" class="footer-link">Gift Hampers</a>
-                    <a href="products.html?category=Wedding" class="footer-link">Wedding Sets</a>
-                    <a href="products.html?category=Birthday" class="footer-link">Birthday Surprises</a>
-                    <a href="products.html?category=Festive" class="footer-link">Festive Specials</a>
+                    <a href="/products?category=Hampers" class="footer-link">Gift Hampers</a>
+                    <a href="/products?category=Wedding" class="footer-link">Wedding Sets</a>
+                    <a href="/products?category=Birthday" class="footer-link">Birthday Surprises</a>
+                    <a href="/products?category=Festive" class="footer-link">Festive Specials</a>
                 </div>
                 <div class="footer-col" style="flex: 1;">
                     <h4 class="footer-title">Get in Touch</h4>
@@ -206,6 +209,6 @@
             </div>
         </footer>
     </div>
-    <script src="script.js"></script>
+    <script src="/script.js"></script>
 </body>
 </html>
