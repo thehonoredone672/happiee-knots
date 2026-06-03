@@ -2,41 +2,8 @@
 // SHARED SCRIPT FOR ALL PAGES
 // ========================================
 
-const DEFAULT_PRODUCTS = [
-    {
-        id: '1', name: 'Ruby Luxe Handbag', category: 'Handbags', price: 2499,
-        image: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?q=80&w=600&auto=format&fit=crop',
-        images: [
-            'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?q=80&w=600&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=600&auto=format&fit=crop'
-        ],
-        description: 'A beautifully structured handcrafted handbag featuring rich crimson tones and premium gold-finish hardware.'
-    },
-    {
-        id: '2', name: 'Sunwoven Citrus Tote', category: 'Handbags', price: 1699,
-        image: 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=600&auto=format&fit=crop',
-        images: ['https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=600&auto=format&fit=crop'],
-        description: 'A vibrant handwoven tote that blends sunny cream and citrus-orange tones for a fresh, standout look.'
-    },
-    {
-        id: '3', name: 'Wedding Keepsake Set', category: 'Wedding', price: 3999,
-        image: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?q=80&w=600&auto=format&fit=crop',
-        images: ['https://images.unsplash.com/photo-1519225421980-715cb0215aed?q=80&w=600&auto=format&fit=crop'],
-        description: 'Elegant keepsake set crafted specially for your special day. Custom initials engraved.'
-    },
-    {
-        id: '6', name: 'Custom Order Base', category: 'Personalized', price: 0, 
-        image: 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?q=80&w=500&auto=format&fit=crop',
-        images: ['https://images.unsplash.com/photo-1607344645866-009c320b63e0?q=80&w=500&auto=format&fit=crop'],
-        description: 'Unique custom orders tailored directly to your vision.'
-    }
-];
-
-if (!localStorage.getItem('happiee_products')) {
-    localStorage.setItem('happiee_products', JSON.stringify(DEFAULT_PRODUCTS));
-}
-const PRODUCTS = JSON.parse(localStorage.getItem('happiee_products'));
-
+// Hold dynamic catalog instances fetched from MongoDB Atlas
+let PRODUCTS = [];
 let cart = JSON.parse(localStorage.getItem('happiee_cart')) || [];
 let slideInterval;
 
@@ -44,7 +11,7 @@ let slideInterval;
 let currentModalProductId = null;
 let currentModalQty = 1;
 let editingCartItemId = null; 
-let currentUploadedPhotos = []; // Store base64 arrays for dynamic addition/deletion in modal
+let currentUploadedPhotos = []; 
 
 document.addEventListener('DOMContentLoaded', () => {
     // Mobile Menu Toggle Logic
@@ -72,6 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const isProductsPage = document.getElementById('productsGrid');
 
     if (isHomePage) initializeHeroSlider();
+    
+    // Trigger Database Stream ingestion if the viewport resides on the products catalogue page
     if (isProductsPage) initializeProductsPage();
 });
 
@@ -112,13 +81,26 @@ function initializeHeroSlider() {
 }
 
 // ========================================
-// PRODUCTS PAGE LOGIC (with In-Card Slider)
+// PRODUCTS PAGE LOGIC (DYNAMIC BACKEND INGESTION)
 // ========================================
-function initializeProductsPage() {
+async function initializeProductsPage() {
     const collectionSearch = document.getElementById('collectionSearch');
     const categorySelect = document.getElementById('categorySelect');
     const sortSelect = document.getElementById('sortSelect');
-    
+
+    try {
+        // Fetch freshly added products from your express server engine
+        const response = await fetch('/api/products/all');
+        const data = await response.json();
+
+        if (data.success && data.products) {
+            PRODUCTS = data.products;
+        }
+    } catch (err) {
+        console.error("Failed synchronizing real-time catalog from MongoDB database instance:", err);
+    }
+
+    // Always ensure the base layout contains your unique baseline values
     if(categorySelect) {
         const uniqueCategories = [...new Set(PRODUCTS.map(p => p.category))];
         const defaultOptions = '<option value="all">All Categories</option>';
@@ -159,6 +141,9 @@ function applyFilters() {
 
     renderProducts(filtered);
 }
+
+// Keep the rest of your original functions (renderProducts, slideProductImg, openProductModal, etc.) exactly as they were below this line...
+
 
 function renderProducts(products) {
     const countEl = document.getElementById('productCount');
