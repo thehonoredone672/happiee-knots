@@ -13,8 +13,83 @@ let currentModalQty = 1;
 let editingCartItemId = null; 
 let currentUploadedPhotos = []; 
 
+// Image Slider State (Local UI)
+let currentModalSlide = 0;
+let modalSlideCount = 0;
+let modalAutoSlideInterval;
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Mobile Menu Toggle Logic
+    setupMobileMenu();
+    ensureModalMarkup();
+
+    const isHomePage = document.getElementById('heroSlider');
+    const isProductsPage = document.getElementById('productsGrid');
+
+    if (isHomePage) initializeHeroSlider();
+    
+    // Trigger Database Stream ingestion if the viewport resides on the products catalogue page
+    if (isProductsPage) {
+        initializeProductsPage();
+    } else {
+        // If not on products page, we still need PRODUCTS to sync the cart properly
+        fetchProductsAndSyncCart();
+    }
+});
+
+// ========================================
+// DATABASE FETCH & CART SYNCHRONIZATION
+// ========================================
+async function fetchProductsAndSyncCart() {
+    try {
+        const response = await fetch('/api/products/all');
+        const data = await response.json();
+
+        if (data.success && data.products) {
+            PRODUCTS = data.products.map(product => ({
+                ...product,
+                id: product._id
+            }));
+        }
+    } catch (err) {
+        console.error("Failed synchronizing real-time catalog from MongoDB database instance:", err);
+    }
+
+    // Ensure Custom Order Base exists for personalization routing if not provided by DB
+    if (!PRODUCTS.find(p => p.category === 'Personalized')) {
+        PRODUCTS.push({
+            id: '6', _id: '6', name: 'Custom Order Base', category: 'Personalized', price: 0,
+            images: ['https://images.unsplash.com/photo-1607344645866-009c320b63e0?q=80&w=500&auto=format&fit=crop'],
+            description: 'Unique custom orders tailored directly to your vision.'
+        });
+    }
+
+    syncCartWithLocalDB();
+}
+
+function syncCartWithLocalDB() {
+    let syncedCart = [];
+    cart.forEach(cartItem => {
+        const localProduct = PRODUCTS.find(p => p.id === cartItem.productId || p._id === cartItem.productId);
+        if (localProduct) {
+            syncedCart.push({
+                ...cartItem,
+                livePrice: localProduct.price,
+                liveName: localProduct.name,
+                liveCategory: localProduct.category,
+                liveImage: (cartItem.customPhotosBase64 && cartItem.customPhotosBase64.length > 0) ? cartItem.customPhotosBase64[0] : (localProduct.images?.[0] || localProduct.image)
+            });
+        }
+    });
+
+    cart = syncedCart;
+    localStorage.setItem('happiee_cart', JSON.stringify(cart));
+    updateCartUI();
+}
+
+// ========================================
+// UI & NAVIGATION SETUP
+// ========================================
+function setupMobileMenu() {
     const menuToggles = document.querySelectorAll('.menu-toggle');
     const mobileMenu = document.getElementById('mobileMenu');
     const mobileOverlay = document.getElementById('mobileOverlay');
@@ -25,24 +100,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     menuToggles.forEach(btn => btn.addEventListener('click', toggleMenu));
-    const menuCloseBtn = document.getElementById('mobileMenuClose');
-    if(menuCloseBtn) menuCloseBtn.addEventListener('click', toggleMenu);
-    if(mobileOverlay) mobileOverlay.addEventListener('click', toggleMenu);
+    document.getElementById('mobileMenuClose')?.addEventListener('click', toggleMenu);
+    mobileOverlay?.addEventListener('click', toggleMenu);
 
-    const clearCartBtn = document.getElementById('clearCartBtn');
-    if(clearCartBtn) clearCartBtn.addEventListener('click', () => { cart = []; saveAndUpdateCart(); });
+    const cartBtns = document.querySelectorAll('.cart-btn');
+    cartBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            if(window.location.pathname.includes('cart') || window.location.pathname.includes('cart.html')) return;
+            e.preventDefault(); 
+            window.location.href = "/cart";
+        });
+    });
 
-    updateCartUI();
-    ensureModalMarkup();
-
-    const isHomePage = document.getElementById('heroSlider');
-    const isProductsPage = document.getElementById('productsGrid');
-
-    if (isHomePage) initializeHeroSlider();
-    
-    // Trigger Database Stream ingestion if the viewport resides on the products catalogue page
-    if (isProductsPage) initializeProductsPage();
-});
+    document.getElementById('clearCartBtn')?.addEventListener('click', () => { cart = []; syncCartWithLocalDB(); });
+}
 
 // ========================================
 // HERO SLIDER
@@ -81,39 +152,21 @@ function initializeHeroSlider() {
 }
 
 // ========================================
-// PRODUCTS PAGE LOGIC (DYNAMIC BACKEND INGESTION)
+// PRODUCTS PAGE LOGIC
 // ========================================
 async function initializeProductsPage() {
-    const collectionSearch = document.getElementById('collectionSearch');
+    await fetchProductsAndSyncCart(); // Await the fetch before populating filters
+
     const categorySelect = document.getElementById('categorySelect');
-    const sortSelect = document.getElementById('sortSelect');
-
-    try {
-        // Fetch freshly added products from your express server engine
-        const response = await fetch('/api/products/all');
-        const data = await response.json();
-
-    if (data.success && data.products) {
-    PRODUCTS = data.products.map(product => ({
-        ...product,
-        id: product._id
-    }));
-    }
-    } catch (err) {
-        console.error("Failed synchronizing real-time catalog from MongoDB database instance:", err);
-    }
-
-    // Always ensure the base layout contains your unique baseline values
     if(categorySelect) {
         const uniqueCategories = [...new Set(PRODUCTS.map(p => p.category))];
-        const defaultOptions = '<option value="all">All Categories</option>';
         const dynOptions = uniqueCategories.filter(c => c !== 'Personalized').map(c => `<option value="${c}">${c}</option>`).join('');
-        categorySelect.innerHTML = defaultOptions + dynOptions;
+        categorySelect.innerHTML = '<option value="all">All Categories</option>' + dynOptions;
     }
 
-    if(collectionSearch) collectionSearch.addEventListener('input', applyFilters);
-    if(categorySelect) categorySelect.addEventListener('change', applyFilters);
-    if(sortSelect) sortSelect.addEventListener('change', applyFilters);
+    document.getElementById('collectionSearch')?.addEventListener('input', applyFilters);
+    categorySelect?.addEventListener('change', applyFilters);
+    document.getElementById('sortSelect')?.addEventListener('change', applyFilters);
     
     const urlParams = new URLSearchParams(window.location.search);
     const catParam = urlParams.get('category');
@@ -123,14 +176,9 @@ async function initializeProductsPage() {
 }
 
 function applyFilters() {
-    const collectionSearch = document.getElementById('collectionSearch');
-    const categorySelect = document.getElementById('categorySelect');
-    const sortSelect = document.getElementById('sortSelect');
-    if(!collectionSearch) return;
-
-    const searchTerm = collectionSearch.value.toLowerCase();
-    const category = categorySelect.value;
-    const sort = sortSelect.value;
+    const searchTerm = document.getElementById('collectionSearch')?.value.toLowerCase() || '';
+    const category = document.getElementById('categorySelect')?.value || 'all';
+    const sort = document.getElementById('sortSelect')?.value || 'newest';
 
     let filtered = PRODUCTS.filter(p => {
         if(p.category === 'Personalized') return false; 
@@ -145,9 +193,6 @@ function applyFilters() {
     renderProducts(filtered);
 }
 
-// Keep the rest of your original functions (renderProducts, slideProductImg, openProductModal, etc.) exactly as they were below this line...
-
-
 function renderProducts(products) {
     const countEl = document.getElementById('productCount');
     if(countEl) countEl.textContent = products.length;
@@ -156,27 +201,11 @@ function renderProducts(products) {
     if(!productsGrid) return;
     
     productsGrid.innerHTML = products.map(product => {
-        const images =
-    product.images?.length
-        ? product.images
-        : product.image
-        ? [product.image]
-        : [];
-        let imageHTML = images.map((img, i) => `<img src="${img}" class="${i===0 ? 'active' : ''}" data-index="${i}">`).join('');
-        
-        let sliderNavHTML = '';
-        if(images.length > 1) {
-            sliderNavHTML = `
-                <button class="product-img-nav prev" onclick="event.stopPropagation(); slideProductImg(this, -1)">&#10094;</button>
-                <button class="product-img-nav next" onclick="event.stopPropagation(); slideProductImg(this, 1)">&#10095;</button>
-            `;
-        }
-
+        const displayImg = product.images?.[0] || product.image;
         return `
         <div class="product-card" onclick="openProductModal('${product.id}')">
             <div class="product-image">
-                ${imageHTML}
-                ${sliderNavHTML}
+                <img src="${displayImg}" alt="${product.name}">
             </div>
             <div class="product-info">
                 <div>
@@ -192,21 +221,6 @@ function renderProducts(products) {
     `}).join('');
 }
 
-window.slideProductImg = (btn, direction) => {
-    const container = btn.closest('.product-image');
-    const images = container.querySelectorAll('img');
-    let currentIndex = Array.from(images).findIndex(img => img.classList.contains('active'));
-    
-    images[currentIndex].classList.remove('active');
-    
-    let nextIndex = currentIndex + direction;
-    if (nextIndex < 0) nextIndex = images.length - 1;
-    if (nextIndex >= images.length) nextIndex = 0;
-    
-    images[nextIndex].classList.add('active');
-}
-
-
 // ========================================
 // DYNAMIC MODAL GENERATION & BINDING
 // ========================================
@@ -217,9 +231,16 @@ function ensureModalMarkup() {
             <div class="modal-content">
                 <button class="close-modal-btn" id="closeModalBtn">&times;</button>
                 <div class="modal-grid">
-                    <div class="modal-image-container" id="standardLeftArea">
-                        <img src="" id="modalImg" alt="Product">
+                    
+                    <div id="standardLeftArea">
+                        <div class="modal-main-img-wrapper">
+                            <button class="modal-slider-arrow prev" onclick="moveModalSlider(-1)">&#10094;</button>
+                            <div class="modal-slider-track" id="modalSliderTrack"></div>
+                            <button class="modal-slider-arrow next" onclick="moveModalSlider(1)">&#10095;</button>
+                        </div>
+                        <div class="modal-thumbnails" id="modalThumbnails"></div>
                     </div>
+
                     <div class="modal-upload-container" id="personalizedLeftArea" style="display:none;">
                         <label class="upload-box">
                             <input type="file" id="customPhotos" accept="image/*" multiple class="custom-file-input-hidden">
@@ -231,6 +252,7 @@ function ensureModalMarkup() {
                         </label>
                         <div id="uploadFileGallery"></div>
                     </div>
+
                     <div class="modal-info">
                         <p class="modal-category" id="modalCategory"></p>
                         <h2 class="modal-title heading-font" id="modalTitle"></h2>
@@ -320,7 +342,7 @@ function bindModalEvents() {
                 item.customDetailsText = customDetails;
                 item.customPhotosBase64 = currentUploadedPhotos;
             }
-            saveAndUpdateCart();
+            syncCartWithLocalDB();
             closeProductModal();
             showNotification(`Cart Updated!`);
         } else {
@@ -349,46 +371,46 @@ window.removeModalPhoto = (index) => {
     renderModalUploadGallery();
 }
 
-
 window.openProductModal = (id) => {
-    // 1. FIXED: If it's the personalized custom order button, create a virtual product object
-    let product;
-    if (id === '6') {
-        product = {
-            id: '6',
-            _id: '6',
-            name: 'Custom Order Base',
-            category: 'Personalized',
-            price: 0,
-            description: 'Unique custom orders tailored directly to your vision.'
-        };
-    } else {
-        // Otherwise, look for the standard product from your live fetched array
-        product = PRODUCTS.find(p => p.id === id || p._id === id);
-    }
-
-    // 2. The safety guard clause stays happy now!
+    const product = PRODUCTS.find(p => p.id === id || p._id === id);
     if(!product) return;
 
-    currentModalProductId = product._id || product.id;
+    currentModalProductId = product.id;
     currentModalQty = 1;
     editingCartItemId = null; 
     currentUploadedPhotos = []; 
 
-    // 3. FIXED: Safe-guard text/source elements against null values for custom orders
-    const modalImgEl = document.getElementById('modalImg');
-    if (modalImgEl) {
-        modalImgEl.src = product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?q=80&w=500';
+    // Build Native Slider for Modal
+    const imagesArray = product.images && product.images.length > 0 ? product.images : [product.image];
+    modalSlideCount = imagesArray.length;
+    currentModalSlide = 0;
+
+    const track = document.getElementById('modalSliderTrack');
+    track.innerHTML = imagesArray.map(img => `<img src="${img}">`).join('');
+    track.style.transform = `translateX(0%)`;
+
+    const thumbnailsContainer = document.getElementById('modalThumbnails');
+    thumbnailsContainer.innerHTML = imagesArray.map((img, idx) => `
+        <img src="${img}" class="modal-thumb ${idx === 0 ? 'active' : ''}" onclick="slideToModalImage(${idx})">
+    `).join('');
+
+    // Toggle Arrows
+    document.querySelectorAll('.modal-slider-arrow').forEach(el => {
+        el.style.display = modalSlideCount > 1 ? 'flex' : 'none';
+    });
+
+    // Auto-slide setup
+    clearInterval(modalAutoSlideInterval);
+    if(modalSlideCount > 1) {
+        modalAutoSlideInterval = setInterval(() => moveModalSlider(1), 4000);
     }
-    
+
     document.getElementById('modalCategory').textContent = product.category;
     document.getElementById('modalTitle').textContent = product.name;
     document.getElementById('modalPrice').textContent = product.price > 0 ? `₹${product.price.toLocaleString()}` : 'Custom Pricing';
     document.getElementById('modalDesc').textContent = product.description;
-    
-    if (typeof syncModalQtyDisplay === 'function') syncModalQtyDisplay();
+    syncModalQtyDisplay();
 
-    // Your existing panel toggle blocks (Personalized vs Standard) continue perfectly below...
     if (product.category === 'Personalized') {
         document.getElementById('standardLeftArea').style.display = 'none';
         document.getElementById('standardDetailsArea').style.display = 'none';
@@ -398,7 +420,6 @@ window.openProductModal = (id) => {
         document.getElementById('personalizedCheckoutArea').style.display = 'block';
         
         document.getElementById('customDetails').value = '';
-        document.getElementById('customPhotos').value = '';
         document.getElementById('uploadFileGallery').innerHTML = '';
         document.getElementById('modalAddCustomToCartBtn').textContent = "Add Custom Order to Bag";
     } else {
@@ -415,59 +436,38 @@ window.openProductModal = (id) => {
     document.body.style.overflow = 'hidden';
 };
 
-document.getElementById('modalAddCustomToCartBtn').addEventListener('click', function () {
-    // 1. Grab values from the personalization text field and quantity counter
-    const customTextDetails = document.getElementById('customDetails').value.trim();
-    const orderedQuantity = currentModalQty || 1;
-
-    // Validation: Ensure they didn't submit an empty text area box
-    if (!customTextDetails) {
-        alert("Please provide some customization details before continuing to WhatsApp.");
-        return;
-    }
-
-    // 2. Compose a clean, readable text message template layout
-    let whatsAppMessage = `*✨ NEW CUSTOM ORDER REQUEST - HAPPIEE KNOTS ✨*\n\n`;
-    whatsAppMessage += `*📋 Product Name:* Custom Order Base\n`;
-    whatsAppMessage += `*🔢 Requested Quantity:* ${orderedQuantity}\n\n`;
-    whatsAppMessage += `*🎨 Customization Requirements:*\n`;
-    whatsAppMessage += `"${customTextDetails}"\n\n`;
+window.slideToModalImage = (index) => {
+    currentModalSlide = index;
+    if (currentModalSlide < 0) currentModalSlide = modalSlideCount - 1;
+    if (currentModalSlide >= modalSlideCount) currentModalSlide = 0;
     
-    // Check if the user attached reference images locally
-    if (typeof currentUploadedPhotos !== 'undefined' && currentUploadedPhotos.length > 0) {
-        whatsAppMessage += `*🖼️ Reference Photos:* Attaching ${currentUploadedPhotos.length} item layout file(s) in this chat string below.\n`;
-    }
-
-    whatsAppMessage += `\n_Please confirm availability and sharing price estimates._`;
-
-    // 3. String-escape the text template parameters safely for web transport protocols
-    const encodedPayloadText = encodeURIComponent(whatsAppMessage);
+    document.getElementById('modalSliderTrack').style.transform = `translateX(-${currentModalSlide * 100}%)`;
     
-    // Replace '919999999999' with your actual business phone number with country code
-    const targetUrlChatLink = `https://wa.me/919999999999?text=${encodedPayloadText}`;
+    const thumbs = document.querySelectorAll('.modal-thumb');
+    thumbs.forEach(t => t.classList.remove('active'));
+    if(thumbs[currentModalSlide]) thumbs[currentModalSlide].classList.add('active');
 
-    // 4. Close your layout drawer popup modal
-    const modal = document.getElementById('productModal');
-    if (modal) modal.style.display = 'none';
-    document.body.style.overflow = ''; // Unlocks standard page scrolling rules
+    clearInterval(modalAutoSlideInterval);
+    if(modalSlideCount > 1) {
+        modalAutoSlideInterval = setInterval(() => moveModalSlider(1), 4000);
+    }
+}
 
-    // 5. Open WhatsApp in a fresh tab instantly
-    window.open(targetUrlChatLink, '_blank');
-});
-
-
+window.moveModalSlider = (direction) => {
+    slideToModalImage(currentModalSlide + direction);
+}
 
 window.editCustomOrder = (cartItemId) => {
     const item = cart.find(i => i.cartItemId === cartItemId);
     if(!item) return;
 
     editingCartItemId = cartItemId;
-    currentModalProductId = item.id;
+    currentModalProductId = item.productId;
     currentModalQty = item.quantity;
     currentUploadedPhotos = item.customPhotosBase64 ? [...item.customPhotosBase64] : [];
     
-    document.getElementById('modalCategory').textContent = item.category;
-    document.getElementById('modalTitle').textContent = item.name;
+    document.getElementById('modalCategory').textContent = item.liveCategory;
+    document.getElementById('modalTitle').textContent = item.liveName;
 
     document.getElementById('standardLeftArea').style.display = 'none';
     document.getElementById('standardDetailsArea').style.display = 'none';
@@ -489,6 +489,7 @@ window.editCustomOrder = (cartItemId) => {
 function closeProductModal() {
     document.getElementById('productModal').style.display = 'none';
     document.body.style.overflow = 'auto';
+    clearInterval(modalAutoSlideInterval);
 }
 
 function updateModalQty(delta) {
@@ -504,29 +505,20 @@ function syncModalQtyDisplay() {
 }
 
 // ========================================
-// CART LOGIC 
+// CART CRUD LOGIC 
 // ========================================
-window.addToCart = (id, quantity = 1, customDetailsText = null, customPhotosBase64 = []) => {
-    const product = PRODUCTS.find(
-        p => p.id === id || p._id === id
-    );
-
-    if (!product) {
-        console.error("Product not found:", id);
-        return;
-    }
-    const cartItemId = (customDetailsText || customPhotosBase64.length > 0) ? `${id}-${Date.now()}` : id;
-    
+window.addToCart = (productId, quantity = 1, customDetailsText = null, customPhotosBase64 = []) => {
+    const cartItemId = (customDetailsText || customPhotosBase64.length > 0) ? `${productId}-${Date.now()}` : productId;
     const existing = cart.find(item => item.cartItemId === cartItemId);
     
-    if (existing && cartItemId === id) {
+    if (existing && cartItemId === productId) {
         existing.quantity += quantity;
     } else {
-        cart.push({ ...product, cartItemId, quantity, customDetailsText, customPhotosBase64 });
+        cart.push({ productId, cartItemId, quantity, customDetailsText, customPhotosBase64 });
     }
     
-    saveAndUpdateCart();
-    showNotification(`${product.name} added to bag!`);
+    syncCartWithLocalDB();
+    showNotification(`Item added to bag!`);
 }
 
 window.updateCartItemQty = (cartItemId, delta) => {
@@ -534,13 +526,8 @@ window.updateCartItemQty = (cartItemId, delta) => {
     if (item) {
         item.quantity += delta;
         if (item.quantity <= 0) cart = cart.filter(i => i.cartItemId !== cartItemId);
-        saveAndUpdateCart();
+        syncCartWithLocalDB();
     }
-}
-
-function saveAndUpdateCart() {
-    localStorage.setItem('happiee_cart', JSON.stringify(cart));
-    updateCartUI();
 }
 
 function updateCartUI() {
@@ -556,40 +543,39 @@ function updateCartUI() {
 
     if (cart.length === 0) {
         if(cartPageContainer) cartPageContainer.classList.add('is-empty');
-        document.querySelectorAll('#cartEmpty').forEach(el => el.style.display = 'flex');
-        document.querySelectorAll('#cartItems').forEach(el => el.innerHTML = '');
-        document.querySelectorAll('#cartFooter').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('#cartControls').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.cart-empty-state-wrapper').forEach(el => el.style.display = 'flex');
+        document.querySelectorAll('.cart-items').forEach(el => el.innerHTML = '');
+        document.querySelectorAll('.cart-summary-section').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.cart-controls').forEach(el => el.style.display = 'none');
     } else {
         if(cartPageContainer) cartPageContainer.classList.remove('is-empty');
-        document.querySelectorAll('#cartEmpty').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('#cartFooter').forEach(el => el.style.display = 'block');
-        document.querySelectorAll('#cartControls').forEach(el => el.style.display = 'flex');
+        document.querySelectorAll('.cart-empty-state-wrapper').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.cart-summary-section').forEach(el => el.style.display = 'block');
+        document.querySelectorAll('.cart-controls').forEach(el => el.style.display = 'flex');
         renderCartItems();
     }
 }
 
 function renderCartItems() {
-    const cartItemsContainer = document.getElementById('cartItems');
-    if(!cartItemsContainer) return;
+    const cartItemsContainers = document.querySelectorAll('.cart-items');
+    if(cartItemsContainers.length === 0) return;
 
-    cartItemsContainer.innerHTML = cart.map(item => {
+    const cartHTML = cart.map(item => {
         const hasPhotos = item.customPhotosBase64 && item.customPhotosBase64.length > 0;
-        const imgSrc = hasPhotos ? item.customPhotosBase64[0] : item.image;
-        const isPersonalized = item.category === 'Personalized';
+        const isPersonalized = item.liveCategory === 'Personalized';
         
         return `
         <div class="cart-item">
             <div class="cart-item-image" ${isPersonalized ? `onclick="editCustomOrder('${item.cartItemId}')" style="cursor:pointer;" title="Edit Custom Order"` : ''}>
-                <img src="${imgSrc}" alt="${item.name}">
+                <img src="${hasPhotos ? item.customPhotosBase64[0] : item.liveImage}" alt="${item.liveName}">
             </div>
             <div class="cart-item-content">
                 <div class="cart-item-header">
                     <div>
-                        <div class="cart-item-name heading-font">${item.name}</div>
-                        <div class="cart-item-cat">${item.category}</div>
+                        <div class="cart-item-name heading-font">${item.liveName}</div>
+                        <div class="cart-item-cat">${item.liveCategory}</div>
                     </div>
-                    ${item.price > 0 ? `<div class="cart-item-price">₹${(item.price * item.quantity).toLocaleString()}</div>` : `<div class="cart-item-price">TBD</div>`}
+                    ${item.livePrice > 0 ? `<div class="cart-item-price">₹${(item.livePrice * item.quantity).toLocaleString()}</div>` : `<div class="cart-item-price">TBD</div>`}
                 </div>
                 
                 ${isPersonalized ? `
@@ -619,7 +605,9 @@ function renderCartItems() {
         `;
     }).join('');
 
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    cartItemsContainers.forEach(container => container.innerHTML = cartHTML);
+
+    const subtotal = cart.reduce((sum, item) => sum + (item.livePrice * item.quantity), 0);
     document.querySelectorAll('.cartSubtotal').forEach(el => el.textContent = `₹${subtotal.toLocaleString()}`);
     document.querySelectorAll('.cartTotal').forEach(el => el.textContent = `₹${subtotal.toLocaleString()}`);
 }
@@ -640,68 +628,69 @@ function showNotification(message) {
     }, 2000);
 }
 
+// ========================================
+// CHECKOUT & WHATSAPP LOGIC
+// ========================================
 window.openCheckoutForm = function() {
-    document.getElementById('checkoutModal').style.display = 'flex';
-    document.body.style.overflow = 'hidden'; // Prevents background scrolling
+    const checkoutModal = document.getElementById('checkoutModal');
+    if(checkoutModal) {
+        checkoutModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
 };
 
 window.closeCheckoutForm = function() {
-    document.getElementById('checkoutModal').style.display = 'none';
-    document.body.style.overflow = ''; // Restores background scrolling
+    const checkoutModal = document.getElementById('checkoutModal');
+    if(checkoutModal) {
+        checkoutModal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
 };
 
+const checkoutForm = document.getElementById('checkoutForm');
+if (checkoutForm) {
+    checkoutForm.addEventListener('submit', function(e) {
+        e.preventDefault(); 
 
-document.getElementById('checkoutForm').addEventListener('submit', function(e) {
-    e.preventDefault(); // Prevents the page from reloading
+        const name = document.getElementById('customerName').value;
+        const phone = document.getElementById('customerPhone').value;
+        const address = document.getElementById('customerAddress').value;
+        const pincode = document.getElementById('customerPincode').value;
+        const state = document.getElementById('customerState').value;
+        const country = document.getElementById('customerCountry').value;
 
-    // 1. Grab all the form input values
-    const name = document.getElementById('customerName').value;
-    const phone = document.getElementById('customerPhone').value;
-    const address = document.getElementById('customerAddress').value;
-    const pincode = document.getElementById('customerPincode').value;
-    const state = document.getElementById('customerState').value;
-    const country = document.getElementById('customerCountry').value;
+        let textMessage = `*NEW ORDER - HAPPIEE KNOTS*\n\n`;
+        textMessage += `*📦 Customer Details:*\n`;
+        textMessage += `• Name: ${name}\n`;
+        textMessage += `• Phone: ${phone}\n`;
+        textMessage += `• Address: ${address}, ${state} - ${pincode}, ${country}\n\n`;
+        textMessage += `*🛍️ Items Ordered:*\n`;
 
-    // 2. Build a beautifully formatted WhatsApp text message
-    let textMessage = `*NEW ORDER - HAPPIEE KNOTS*\n\n`;
-    textMessage += `*📦 Customer Details:*\n`;
-    textMessage += `• Name: ${name}\n`;
-    textMessage += `• Phone: ${phone}\n`;
-    textMessage += `• Address: ${address}, ${state} - ${pincode}, ${country}\n\n`;
-    textMessage += `*🛍️ Items Ordered:*\n`;
+        let grandTotal = 0;
+        
+        cart.forEach((item, index) => {
+            const itemTotal = item.livePrice * item.quantity;
+            grandTotal += itemTotal;
+            textMessage += `${index + 1}. ${item.liveName} (x${item.quantity}) - ₹${itemTotal.toLocaleString('en-IN')}\n`;
+            if (item.customDetailsText) {
+                textMessage += `   _Customization: ${item.customDetailsText}_\n`;
+            }
+        });
 
-    let grandTotal = 0;
-    
-    // Loops through your active cart array
-    cart.forEach((item, index) => {
-        const itemTotal = item.price * item.quantity;
-        grandTotal += itemTotal;
-        textMessage += `${index + 1}. ${item.name} (x${item.quantity}) - ₹${itemTotal.toLocaleString('en-IN')}\n`;
-        if (item.customDetailsText) {
-            textMessage += `   _Customization: ${item.customDetailsText}_\n`;
-        }
+        textMessage += `\n*💵 Grand Total: ₹${grandTotal.toLocaleString('en-IN')}*`;
+
+        const encodedMessage = encodeURIComponent(textMessage);
+        
+        // Target WhatsApp Number
+        const whatsAppLink = `https://wa.me/918056236197?text=${encodedMessage}`;
+
+        // Clear cart
+        cart = [];
+        localStorage.setItem('happiee_cart', JSON.stringify(cart));
+        
+        closeCheckoutForm();
+        window.open(whatsAppLink, '_blank');
+        
+        if (typeof renderCartItems === 'function') updateCartUI();
     });
-
-    textMessage += `\n*💵 Grand Total: ₹${grandTotal.toLocaleString('en-IN')}*`;
-
-    // 3. URL Encode the text message so characters spaces linebreaks parse correctly
-    const encodedMessage = encodeURIComponent(textMessage);
-    
-    // Replace '919999999999' with your actual business phone number with country code
-    const whatsAppLink = `https://wa.me/918056236197?text=${encodedMessage}`;
-
-    // 4. Clear the shopping bag local state since the order is placed
-    cart = [];
-    localStorage.setItem('happiee_cart', JSON.stringify(cart));
-    
-    // 5. Close the form overlay and redirect to WhatsApp
-    closeCheckoutForm();
-    window.open(whatsAppLink, '_blank');
-    
-    // Refresh your cart page view parameters instantly
-    if (typeof renderCartPage === 'function') renderCartPage();
-});
-
-
-
-
+}
