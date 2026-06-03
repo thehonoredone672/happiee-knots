@@ -579,6 +579,16 @@ function showNotification(message) {
     }, 2000);
 }
 
+window.openCheckoutForm = function() {
+    document.getElementById('checkoutModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // Prevents background scrolling
+};
+
+window.closeCheckoutForm = function() {
+    document.getElementById('checkoutModal').style.display = 'none';
+    document.body.style.overflow = ''; // Restores background scrolling
+};
+
 
 document.getElementById('checkoutForm').addEventListener('submit', function(e) {
     e.preventDefault(); // Prevents the page from reloading
