@@ -431,20 +431,42 @@
             }
         }
 
-        function deleteProduct(id) {
-            if(id === '6') {
-                alert("The Custom Order Base product cannot be deleted as it controls the personalized form.");
-                return;
-            }
-            if(confirm("Are you sure you want to delete this product? It will be removed from the live store.")) {
-                
-                // Ideally you'd call fetch('/api/products/delete') here on your backend.
-                // Because no backend delete route was provided in your deployed file, we manage the UI via local filtering.
-                adminProducts = adminProducts.filter(p => p.id !== id && p._id !== id);
-                localStorage.setItem('happiee_products', JSON.stringify(adminProducts));
-                renderAdminTable();
-            }
+        async function deleteProduct(id) {
+    if (id === '6') {
+        alert("The Custom Order Base product cannot be deleted as it controls the personalized form.");
+        return;
+    }
+
+    if (!confirm("Are you sure you want to delete this product? It will be permanently removed from the live store.")) {
+        return; // Exit safely if the admin clicks 'Cancel'
+    }
+
+    try {
+        // 1. Dispatch delete directive straight to your Render express backend engine
+        const response = await fetch(`/api/products/delete/${id}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            alert("Product removed from live database successfully.");
+
+            // 2. Synchronize your local tracking variables with the database drop
+            adminProducts = adminProducts.filter(p => p.id !== id && p._id !== id);
+            localStorage.setItem('happiee_products', JSON.stringify(adminProducts));
+            
+            // 3. Force your admin UI control dashboard table grid to update instantly
+            if (typeof renderAdminTable === 'function') renderAdminTable();
+        } else {
+            alert(data.message || "Failed removing product profile records.");
         }
+    } catch (err) {
+        console.error("Database communication failure running delete operation:", err);
+        alert("Could not reach the database backend server. Please check your Render logs.");
+    }
+        }
+        
     </script>
 </body>
 </html>
