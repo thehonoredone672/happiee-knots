@@ -415,6 +415,46 @@ window.openProductModal = (id) => {
     document.body.style.overflow = 'hidden';
 };
 
+document.getElementById('modalAddCustomToCartBtn').addEventListener('click', function () {
+    // 1. Grab values from the personalization text field and quantity counter
+    const customTextDetails = document.getElementById('customDetails').value.trim();
+    const orderedQuantity = currentModalQty || 1;
+
+    // Validation: Ensure they didn't submit an empty text area box
+    if (!customTextDetails) {
+        alert("Please provide some customization details before continuing to WhatsApp.");
+        return;
+    }
+
+    // 2. Compose a clean, readable text message template layout
+    let whatsAppMessage = `*✨ NEW CUSTOM ORDER REQUEST - HAPPIEE KNOTS ✨*\n\n`;
+    whatsAppMessage += `*📋 Product Name:* Custom Order Base\n`;
+    whatsAppMessage += `*🔢 Requested Quantity:* ${orderedQuantity}\n\n`;
+    whatsAppMessage += `*🎨 Customization Requirements:*\n`;
+    whatsAppMessage += `"${customTextDetails}"\n\n`;
+    
+    // Check if the user attached reference images locally
+    if (typeof currentUploadedPhotos !== 'undefined' && currentUploadedPhotos.length > 0) {
+        whatsAppMessage += `*🖼️ Reference Photos:* Attaching ${currentUploadedPhotos.length} item layout file(s) in this chat string below.\n`;
+    }
+
+    whatsAppMessage += `\n_Please confirm availability and sharing price estimates._`;
+
+    // 3. String-escape the text template parameters safely for web transport protocols
+    const encodedPayloadText = encodeURIComponent(whatsAppMessage);
+    
+    // Replace '919999999999' with your actual business phone number with country code
+    const targetUrlChatLink = `https://wa.me/919999999999?text=${encodedPayloadText}`;
+
+    // 4. Close your layout drawer popup modal
+    const modal = document.getElementById('productModal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = ''; // Unlocks standard page scrolling rules
+
+    // 5. Open WhatsApp in a fresh tab instantly
+    window.open(targetUrlChatLink, '_blank');
+});
+
 
 
 window.editCustomOrder = (cartItemId) => {
