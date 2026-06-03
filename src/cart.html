@@ -4,28 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Bag | Happiee Knots</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
     <div class="app">
         <header class="header">
             <div class="header-container">
                 <div class="header-left">
-                    <h1 class="logo">
+                    <a href="/index" class="logo" style="color:inherit;">
+                        <img src="../public/logo.jpeg" class="logo-img" alt="Logo">
                         <span class="logo-main">happiee</span> knots
-                    </h1>
+                    </a>
                 </div>
 
                 <nav class="desktop-nav">
-                    <a href="index.html" class="nav-link">HOME</a>
-                    <a href="products.html" class="nav-link">PRODUCTS</a>
-                    <a href="about.html" class="nav-link">ABOUT US</a>
+                    <a href="/index" class="nav-link">HOME</a>
+                    <a href="/products" class="nav-link">PRODUCTS</a>
+                    <a href="/about" class="nav-link">ABOUT US</a>
                 </nav>
 
                 <div class="header-right">
-                    <a href="#" class="nav-link hide-mobile">LOGIN</a>
-                    <button class="btn-signup hide-mobile">SIGN UP</button>
+                    <a href="/login" class="nav-link hide-mobile">LOGIN</a>
+                    <a href="/signup">
+                        <button class="btn-signup hide-mobile">SIGN UP</button>
+                    </a>
                     
                     <a href="https://wa.me/919999999999" target="_blank" class="icon-btn" aria-label="Contact via WhatsApp">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -33,24 +38,32 @@
                         </svg>
                     </a>
                     
-                    <a href="cart.html" class="icon-btn cart-btn" aria-label="Cart">
+                    <a href="/cart" class="icon-btn cart-btn" aria-label="Cart">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
                             <line x1="3" y1="6" x2="21" y2="6"></line>
                         </svg>
                         <span class="cart-badge" style="display:none">0</span>
                     </a>
-                    <button class="icon-btn menu-toggle" id="menuToggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                    
+                    <button class="icon-btn menu-toggle" id="menuToggle">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
                 </div>
             </div>
+            
             <div class="mobile-overlay" id="mobileOverlay"></div>
             <div class="mobile-menu" id="mobileMenu">
                 <button class="mobile-menu-close" id="mobileMenuClose">&times;</button>
-                <a href="index.html" class="mobile-nav-link">Home</a>
-                <a href="products.html" class="mobile-nav-link">Products</a>
-                <a href="about.html" class="mobile-nav-link">About Us</a>
-                <a href="https://wa.me/919999999999" class="mobile-nav-link">Contact</a>
-                <a href="#" class="mobile-nav-link">Login</a>
+                <a href="/index" class="mobile-nav-link">Home</a>
+                <a href="/products" class="mobile-nav-link">Products</a>
+                <a href="/about" class="mobile-nav-link">About Us</a>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 10px 20px;">
+                
+                <a href="/login" class="mobile-nav-link">Login</a>
+                <a href="/signup" class="mobile-nav-link">Sign Up</a>
+                <a href="https://wa.me/919999999999" target="_blank" class="mobile-nav-link">Contact (WhatsApp)</a>
             </div>
         </header>
 
@@ -59,41 +72,40 @@
                 <h1 class="heading-font">Shopping Bag</h1>
                 <div class="cart-controls" id="cartControls" style="display:none; color: var(--color-gray-500);">
                     <span style="margin-right: 15px;"><span class="cartCountLabel">0</span> items</span>
-                    <button class="clear-cart-btn" id="clearCartBtn" style="text-decoration: underline; color: inherit;">Clear all</button>
+                    <button class="clear-cart-btn" id="clearCartBtn" style="text-decoration: underline; color: inherit; cursor: pointer; border: none; background: none; font-family: inherit;">Clear all</button>
                 </div>
             </div>
 
-            <!-- Single Render Container - JavaScript automatically centers the Empty State perfectly -->
             <div class="cart-layout" id="cartPageContainer">
                 
                 <div class="cart-items-section">
-                    <!-- Perfectly Centered Empty Cart Component -->
-                    <div class="cart-empty-state" style="display:none;">
-                        <p class="cart-empty-message">Your bag is empty.</p>
-                        <a href="products.html" class="btn btn-outline" style="border-radius: 50px;">Continue Shopping</a>
+                    <div class="cart-empty-state cart-empty-state-wrapper" style="display:none; text-align: center; padding: 4rem 1rem;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--color-pink-300)" stroke-width="1.5" style="margin-bottom: 1rem;">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                        </svg>
+                        <h2 class="heading-font" style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--color-black);">Your bag is empty</h2>
+                        <p class="cart-empty-message" style="margin-bottom: 2rem; color: var(--color-gray-600);">Looks like you haven't added anything to your cart yet.</p>
+                        <a href="/products" class="btn btn-primary" style="padding: 1rem 3rem;">Start Shopping</a>
                     </div>
 
                     <div class="cart-items" id="cartItems"></div>
                 </div>
 
                 <div class="cart-summary-section" id="cartFooter" style="display:none;">
-    <div class="order-summary-card">
-        <h4 class="summary-title heading-font">Order Summary</h4>
-        <div class="summary-row">
-            <span>Subtotal</span><span class="cartSubtotal" style="font-weight: 600;">₹0</span>
-        </div>
-        <hr class="summary-divider">
-        <div class="summary-row summary-total">
-            <span>Total</span><span class="cartTotal">₹0</span>
-        </div>
-        <!-- Added id="btnWhatsAppOrder" here -->
-        <button
-    class="btn btn-whatsapp"
-    style="width:100%;justify-content:center;"
-    onclick="openCheckoutForm()">
-    Order via WhatsApp
-        </button>
-    </div>
+                    <div class="order-summary-card">
+                        <h4 class="summary-title heading-font">Order Summary</h4>
+                        <div class="summary-row">
+                            <span>Subtotal</span><span class="cartSubtotal" style="font-weight: 600;">₹0</span>
+                        </div>
+                        <hr class="summary-divider">
+                        <div class="summary-row summary-total">
+                            <span>Total</span><span class="cartTotal">₹0</span>
+                        </div>
+                        <button class="btn btn-whatsapp" style="width:100%;justify-content:center;" onclick="openCheckoutForm()">
+                            Order via WhatsApp
+                        </button>
+                    </div>
                 </div>
             </div>
         </main>
@@ -101,15 +113,18 @@
         <footer class="footer">
             <div class="footer-content">
                 <div class="footer-col" style="flex: 1.5;">
-                    <h4 class="footer-title heading-font">happiee knots</h4>
+                    <h4 class="footer-title heading-font">
+                        <img src="../public/logo.jpeg" class="logo-img" alt="Logo" style="display:inline; width:24px; height:24px; vertical-align:middle; margin-right:5px;">
+                        happiee knots
+                    </h4>
                     <p class="footer-text">Handcrafted gifts made with love, designed to make every moment unforgettable.</p>
                 </div>
                 <div class="footer-col" style="flex: 1;">
                     <h4 class="footer-title">Collections</h4>
-                    <a href="products.html?category=Hampers" class="footer-link">Hampers</a>
-                    <a href="products.html?category=Wedding" class="footer-link">Wedding Sets</a>
-                    <a href="products.html?category=Birthday" class="footer-link">Birthday Surprises</a>
-                    <a href="products.html?category=Festive" class="footer-link">Festive Specials</a>
+                    <a href="/products?category=Hampers" class="footer-link">Gift Hampers</a>
+                    <a href="/products?category=Wedding" class="footer-link">Wedding Sets</a>
+                    <a href="/products?category=Birthday" class="footer-link">Birthday Surprises</a>
+                    <a href="/products?category=Festive" class="footer-link">Festive Specials</a>
                 </div>
                 <div class="footer-col" style="flex: 1;">
                     <h4 class="footer-title">Get in Touch</h4>
@@ -123,44 +138,29 @@
             </div>
         </footer>
     </div>
+
     <div id="checkoutModal" class="checkout-modal">
-    <div class="checkout-content">
-
-        <div class="checkout-header">
-            <h3>Order Details</h3>
-            <button onclick="closeCheckoutForm()">✕</button>
+        <div class="checkout-content">
+            <div class="checkout-header">
+                <h3>Order Details</h3>
+                <button onclick="closeCheckoutForm()">✕</button>
+            </div>
+            <form id="checkoutForm">
+                <input type="text" id="customerName" placeholder="Full Name" required>
+                <input type="tel" id="customerPhone" placeholder="+91 9876543210" required>
+                <input type="email" id="customerEmail" placeholder="Email Address" required>
+                <textarea id="customerAddress" placeholder="Address" required></textarea>
+                <input type="text" id="customerPincode" placeholder="Pincode" required>
+                <input type="text" id="customerState" placeholder="State" required>
+                <input type="text" id="customerCountry" placeholder="Country" required>
+                
+                <button type="submit" class="submit-order-btn btn-whatsapp" style="background-color: var(--color-whatsapp); color: white; margin-top: 10px;">
+                    Continue to WhatsApp
+                </button>
+            </form>
         </div>
-
-        <form id="checkoutForm">
-
-            <input type="text" id="customerName" placeholder="Full Name" required>
-
-            <input type="tel" id="customerPhone"
-                placeholder="+91 9876543210" required>
-
-            <input type="email" id="customerEmail"
-                placeholder="Email Address" required>
-
-            <textarea id="customerAddress"
-                placeholder="Address" required></textarea>
-
-            <input type="text" id="customerPincode"
-                placeholder="Pincode" required>
-
-            <input type="text" id="customerState"
-                placeholder="State" required>
-
-            <input type="text" id="customerCountry"
-                placeholder="Country" required>
-
-            <button type="submit" class="submit-order-btn">
-                Continue to WhatsApp
-            </button>
-
-        </form>
-    </div>
     </div>
     
-    <script src="script.js"></script>
+    <script src="/script.js"></script>
 </body>
 </html>
