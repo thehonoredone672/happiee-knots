@@ -114,27 +114,7 @@ app.get('/admin', (req, res) => {
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'src', 'login.html')));
 app.get('/signup', (req, res) => res.sendFile(path.join(__dirname, 'src', 'signup.html')));
 
-// --- DELETE LIVE PRODUCT ENDPOINT ---
-router.delete('/delete/:id', async (req, res) => {
-    try {
-        const productId = req.params.id;
 
-        // Safety block: prevents deleting your critical system placeholder ID
-        if (productId === '6') {
-            return res.status(400).json({ success: false, message: 'Cannot delete system baseline elements.' });
-        }
-
-        const deletedProduct = await Product.findByIdAndDelete(productId);
-
-        if (!deletedProduct) {
-            return res.status(404).json({ success: false, message: 'Product not found in database.' });
-        }
-
-        return res.json({ success: true, message: 'Product permanently removed from database.' });
-    } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
-    }
-});
 
 
 
