@@ -11,7 +11,12 @@
     <style>
         body { background-color: var(--color-gray-50); margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; }
         .admin-header-bar { background: var(--color-white); border-bottom: 1px solid var(--color-pink-100); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-        .admin-logo { font-size: 1.75rem; font-weight: 500; letter-spacing: -0.5px; font-family: 'Outfit', sans-serif; text-decoration: none; color: var(--color-black); display: flex; align-items: center; gap: 8px;}
+         .admin-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
         .admin-logo .logo-main { font-weight: 800; color: var(--color-pink-600); }
         .admin-logout { color: var(--color-gray-500); font-size: 0.95rem; font-weight: 600; transition: var(--transition); background: none; border: none; cursor: pointer; text-decoration: none;}
         .admin-logout:hover { color: var(--color-pink-600); }
@@ -37,7 +42,11 @@
         .admin-form-group { margin-bottom: 1.25rem; }
         .admin-form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-gray-700);}
         .admin-input { width: 100%; padding: 0.75rem; border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-family: inherit; font-size: 0.95rem; outline: none; transition: var(--transition); }
-        .admin-input:focus { border-color: var(--color-pink-500); box-shadow: 0 0 0 3px var(--color-pink-50); }
+         /* Hide placeholder on focus */
+.admin-input:focus::placeholder {
+    color: transparent;
+    transition: color 0.2s ease;
+}
         .new-category-input { display: none; margin-top: 0.5rem; }
 
         .image-preview-gallery { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
