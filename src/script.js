@@ -627,7 +627,7 @@ document.getElementById('checkoutForm').addEventListener('submit', function(e) {
     const encodedMessage = encodeURIComponent(textMessage);
     
     // Replace '919999999999' with your actual business phone number with country code
-    const whatsAppLink = `https://wa.me/919999999999?text=${encodedMessage}`;
+    const whatsAppLink = `https://wa.me/918056236197?text=${encodedMessage}`;
 
     // 4. Clear the shopping bag local state since the order is placed
     cart = [];
