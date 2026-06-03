@@ -43,6 +43,7 @@ app.use(session({
 
 // Serve static assets from your asset folder ('src')
 app.use(express.static(path.join(__dirname, 'src')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ==========================================
 //          AUTHENTICATION LAYER API
