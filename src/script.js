@@ -694,3 +694,56 @@ if (checkoutForm) {
         if (typeof renderCartItems === 'function') updateCartUI();
     });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    checkUserAuthentication();
+});
+
+async function checkUserAuthentication() {
+    try {
+        // Query your Express authentication middleware layer
+        const response = await fetch('/api/auth/me');
+        const data = await response.json();
+
+        if (data.success && data.user) {
+            // 1. Target your structural header elements
+            const headerRight = document.querySelector('.header-right');
+            const mobileMenu = document.getElementById('mobileMenu');
+
+            // 2. Locate and completely drop the static Login / Signup links out of view
+            const desktopLogin = headerRight.querySelector('a[href="/login"]');
+            const desktopSignup = headerRight.querySelector('a[href="/signup"]');
+            if (desktopLogin) desktopLogin.remove();
+            if (desktopSignup) desktopSignup.remove();
+
+            // 3. Generate initials from the user's logged name (e.g., "Naveen Kumar" -> "NK")
+            const nameParts = data.user.name.split(' ');
+            const initials = nameParts.map(part => part[0]).join('').substring(0, 2);
+
+            // 4. Inject the circular profile badge markup into the desktop navigation tray
+            const profileHTML = `
+                <a href="/profile" class="user-profile-badge" title="View Profile Layout">
+                    ${initials}
+                </a>
+            `;
+            // Inserts the profile icon right before your WhatsApp/Cart buttons
+            headerRight.insertAdjacentHTML('afterbegin', profileHTML);
+
+            // 5. Update the mobile navigation menu links dynamically as well
+            if (mobileMenu) {
+                const mobileLoginLink = mobileMenu.querySelector('a[href="/login"]');
+                if (mobileLoginLink) {
+                    mobileLoginLink.outerHTML = `
+                        <div style="padding: 12px 16px; border-top: 1px solid #f1f5f9; margin-top: 10px;">
+                            <span class="mobile-nav-link" style="font-weight: 600; color: #111;">Hello, ${data.user.name}</span>
+                            <a href="/api/auth/logout" class="mobile-nav-link" style="color: #d93b7c; margin-top: 8px;">Logout</a>
+                        </div>
+                    `;
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Authentication check connection error context:", err);
+    }
+}
+
