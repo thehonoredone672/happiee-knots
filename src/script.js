@@ -356,7 +356,7 @@ window.openProductModal = (id) => {
 
     if(!product) return;
 
-    currentModalProductId = product.id;
+    currentModalProductId = product._id || product.id;
     currentModalQty = 1;
     editingCartItemId = null; 
     currentUploadedPhotos = []; // Reset global photo tracker
