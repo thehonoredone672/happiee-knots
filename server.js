@@ -110,8 +110,8 @@ app.get('/admin', (req, res) => {
 });
 
 // Legacy client-routing helper backups
-app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'src', 'login.html')));
-app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, 'src', 'signup.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'src', 'login.html')));
+app.get('/signup', (req, res) => res.sendFile(path.join(__dirname, 'src', 'signup.html')));
 
 // Start the server
 app.listen(PORT, () => {
