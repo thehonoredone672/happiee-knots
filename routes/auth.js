@@ -2,19 +2,25 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 
-// --- SIGNUP ENDPOINT ---
+// =======================================================
+//                  --- SIGNUP ENDPOINT ---
+// =======================================================
 router.post('/signup', async (req, res) => {
     try {
         const { name, email, password } = req.body;
 
         // Check if user already exists
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'Email is already registered.' });
         }
 
-        // Create and save new user
-        const newUser = new User({ name, email, password });
+        // Create and save new user (normalizing email strings)
+        const newUser = new User({ 
+            name: name.trim(), 
+            email: email.toLowerCase().trim(), 
+            password 
+        });
         await newUser.save();
 
         return res.status(201).json({ success: true, message: 'Account created successfully!' });
@@ -23,56 +29,64 @@ router.post('/signup', async (req, res) => {
     }
 });
 
-// --- LOGIN ENDPOINT ---
+// =======================================================
+//                  --- LOGIN ENDPOINT ---
+// =======================================================
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find user by email
-        const user = await User.findOne({ email });
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Please provide email and password.' });
+        }
+
+        // Find user by normalized email entry
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
         if (!user) {
             return res.status(400).json({ success: false, message: 'Invalid email or password.' });
         }
 
-        // Check password validity using schema method
+        // Check password validity safely using schema method
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
             return res.status(400).json({ success: false, message: 'Invalid email or password.' });
         }
 
-        // =======================================================
-        // FIXED: ATTACH USER TO SESSION FOR EXPRESS-SESSION TO TRACK
-        // =======================================================
+        // Attach clean user tracking information parameters to session state payload
         req.session.user = {
             id: user._id,
             name: user.name,
             email: user.email
         };
 
-        // Successful authentication response
-        return res.json({ 
-            success: true, 
-            message: 'Logged in successfully!', 
-            user: req.session.user
+        // FIXED: Explicitly save the session state to MongoDB BEFORE sending the success signal
+        req.session.save((err) => {
+            if (err) {
+                return res.status(500).json({ success: false, message: 'Session tracking configuration error.' });
+            }
+            return res.json({ 
+                success: true, 
+                message: 'Logged in successfully!', 
+                user: req.session.user
+            });
         });
+
     } catch (error) {
-    // This will send the exact error message to your browser alert popup
-    return res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
-    
 });
 
-// --- GET CURRENT USER SESSION STATE (FOR NAVBAR CHECK) ---
+// =======================================================
+//            --- GET CURRENT USER SESSION ---
+// =======================================================
 router.get('/me', (req, res) => {
-    // If express-session has a user object attached, they are authenticated!
     if (req.session && req.session.user) {
         return res.json({
             success: true,
-            loggedIn: true, // Frontend checks for this
+            loggedIn: true, 
             user: req.session.user
         });
     } else {
-        // If no session exists, safely return false instead of a server crash
         return res.json({
             success: false,
             loggedIn: false
@@ -80,15 +94,18 @@ router.get('/me', (req, res) => {
     }
 });
 
-// --- LOGOUT ENDPOINT (OPTIONAL BUT RECOMMENDED) ---
+// =======================================================
+//                 --- LOGOUT ENDPOINT ---
+// =======================================================
 router.get('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) {
-            return res.status(500).json({ success: false, message: 'Could not log out' });
+            return res.status(500).json({ success: false, message: 'Could not log out safely.' });
         }
-        res.redirect('/'); // Sends them right back to the homepage after clearing the cookie
+        // FIXED: Clear cookie parameters instantly so old session traces disappear completely
+        res.clearCookie('connect.sid'); 
+        res.redirect('/'); 
     });
 });
-
 
 module.exports = router;
