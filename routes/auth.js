@@ -56,8 +56,10 @@ router.post('/login', async (req, res) => {
             user: req.session.user
         });
     } catch (error) {
-        return res.status(500).json({ success: false, message: 'Server error. Please try again.' });
+    // This will send the exact error message to your browser alert popup
+    return res.status(500).json({ success: false, message: error.message });
     }
+    
 });
 
 module.exports = router;
