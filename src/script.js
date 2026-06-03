@@ -747,3 +747,41 @@ async function checkUserAuthentication() {
     }
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    updateNavbarSession();
+});
+
+async function updateNavbarSession() {
+    try {
+        const response = await fetch('/api/auth/me');
+        const data = await response.json();
+
+        const authHeaderContainer = document.getElementById('authHeaderContainer');
+        const mobileAuthContainer = document.getElementById('mobileAuthContainer');
+
+        if (data.success && data.user) {
+            // 1. Calculate the user's name initials (e.g., "Naveen Kumar" -> "NK")
+            const initials = data.user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+            // 2. Inject the circular profile badge markup into Desktop Navbar
+            if (authHeaderContainer) {
+                authHeaderContainer.innerHTML = `
+                    <a href="/profile" class="user-profile-badge" title="View Profile">
+                        ${initials}
+                    </a>
+                `;
+            }
+
+            // 3. Inject Hello message and Logout link into Mobile Menu
+            if (mobileAuthContainer) {
+                mobileAuthContainer.innerHTML = `
+                    <span class="mobile-nav-link" style="font-weight: 600; color: #111;">Hello, ${data.user.name}</span>
+                    <a href="/api/auth/logout" class="mobile-nav-link" style="color: #d93b7c;">Logout</a>
+                `;
+            }
+        }
+    } catch (err) {
+        console.error("Navbar authorization synchronizer dropped connection:", err);
+    }
+}
+
