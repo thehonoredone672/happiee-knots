@@ -76,7 +76,7 @@
             <span class="logo-main">happiee</span> knots
         </a>
         <div style="display: flex; gap: 1.5rem; align-items: center;">
-            <a href="/index" class="admin-logout">View Store</a>
+            <a href="/" class="admin-logout">View Store</a>
             <button onclick="handleLogout()" class="admin-logout" style="color: var(--color-pink-600);">Logout</button>
         </div>
     </header>
@@ -431,41 +431,41 @@
             }
         }
 
-        async function deleteProduct(id) {
-    if (id === '6') {
+async function deleteProduct(id) {
+    if(id === '6') {
         alert("The Custom Order Base product cannot be deleted as it controls the personalized form.");
         return;
     }
 
-    if (!confirm("Are you sure you want to delete this product? It will be permanently removed from the live store.")) {
-        return; // Exit safely if the admin clicks 'Cancel'
+    if(!confirm("Are you sure you want to delete this product? It will be permanently removed from the live store.")) {
+        return; // Exit safely if the admin changes their mind
     }
 
     try {
-        // 1. Dispatch delete directive straight to your Render express backend engine
+        // Send a DELETE request to your live backend endpoint
         const response = await fetch(`/api/products/delete/${id}`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' }
+            method: 'DELETE'
         });
         const data = await response.json();
 
         if (data.success) {
-            alert("Product removed from live database successfully.");
+            alert("Product successfully deleted from the database!");
 
-            // 2. Synchronize your local tracking variables with the database drop
+            // Keep your local UI state sync logic perfectly aligned
             adminProducts = adminProducts.filter(p => p.id !== id && p._id !== id);
             localStorage.setItem('happiee_products', JSON.stringify(adminProducts));
             
-            // 3. Force your admin UI control dashboard table grid to update instantly
+            // Refresh your dashboard view table instantly
             if (typeof renderAdminTable === 'function') renderAdminTable();
         } else {
-            alert(data.message || "Failed removing product profile records.");
+            alert(data.message || "Failed to delete the product from the server.");
         }
     } catch (err) {
-        console.error("Database communication failure running delete operation:", err);
-        alert("Could not reach the database backend server. Please check your Render logs.");
+        console.error("Communication failure with authentication server:", err);
+        alert("Error connecting to the live database server. Check your Render logs!");
     }
-        }
+}
+        
         
     </script>
 </body>
