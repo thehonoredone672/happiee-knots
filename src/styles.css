@@ -325,3 +325,38 @@ h1, h2, h3, h4, h5, h6 { font-weight: 600; line-height: 1.2; }
 #checkoutForm { display: flex; flex-direction: column; gap: 12px; }
 #checkoutForm input, #checkoutForm textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
 .submit-order-btn { width: 100%; padding: 14px; border: none; border-radius: 8px; cursor: pointer; }
+
+
+/* ========================================================
+   AUTHENTICATED USER PROFILE BADGE STYLES
+   ======================================================== */
+.user-profile-badge {
+    width: 36px;
+    height: 36px;
+    background-color: #d93b7c; /* Brand pink base backdrop color */
+    color: #ffffff;
+    border-radius: 50%; /* Forms the perfect circular boundary profile */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-profile-badge:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(217, 59, 124, 0.2);
+}
+
+/* Optional mobile layout adjustments */
+@media (max-width: 768px) {
+    .nav-welcome-text {
+        display: none; /* Keeps mobile layout minimalist */
+    }
+}
+
