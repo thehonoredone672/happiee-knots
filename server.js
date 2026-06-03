@@ -26,20 +26,20 @@ mongoose.connect(process.env.MONGODB_URI)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Express Session tracking
+app.set('trust proxy', 1); // CRITICAL: Tells Express to trust Render's reverse proxy for cookies
+
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'happiee_knots_premium_secret_key',
+    secret: process.env.SESSION_SECRET || 'happieeknotssecretkey',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'sessions'
-    }),
-    cookie: { 
-        maxAge: 1000 * 60 * 60 * 24, // 24 Hours
-        secure: false 
+    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }), // Keeps session data in MongoDB Atlas
+    cookie: {
+        secure: true, // Requires true on Render because it runs over HTTPS
+        sameSite: 'none', // Needed for cross-domain cookie passing if frontend/backend are split
+        maxAge: 24 * 60 * 60 * 1000 // 1 Day session duration window
     }
 }));
+
 
 // Serve static assets from your asset folder ('src')
 app.use(express.static(path.join(__dirname, 'src')));
