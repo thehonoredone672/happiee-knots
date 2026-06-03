@@ -801,35 +801,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function updateNavbarSession() {
     try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch('/api/auth/me', { method: 'GET' });
         const data = await response.json();
 
-        const authHeaderContainer = document.getElementById('authHeaderContainer');
-        const mobileAuthContainer = document.getElementById('mobileAuthContainer');
+        const navLoginContainer = document.getElementById('navLoginContainer');
+        const navSignupContainer = document.getElementById('navSignupContainer');
+        const mobileAuthContainer = document.getElementById('mobileAuthContainer'); // Mobile drawer target placeholder
 
         if (data.success && data.user) {
-            // 1. Calculate the user's name initials (e.g., "Naveen Kumar" -> "NK")
+            // 1. Calculate initials from user data context profile setup
             const initials = data.user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-            // 2. Inject the circular profile badge markup into Desktop Navbar
-            if (authHeaderContainer) {
-                authHeaderContainer.innerHTML = `
+            // 2. Convert LOGIN button container into an explicit LOG OUT text link button
+            if (navLoginContainer) {
+                navLoginContainer.innerHTML = `
+                    <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600);">LOG OUT</a>
+                `;
+            }
+
+            // 3. Convert SIGN UP button container into your circular initial profile badge link
+            if (navSignupContainer) {
+                navSignupContainer.innerHTML = `
                     <a href="/profile" class="user-profile-badge" title="View Profile">
                         ${initials}
                     </a>
                 `;
             }
 
-            // 3. Inject Hello message and Logout link into Mobile Menu
+            // 4. Smooth out mobile views drawer layouts uniformly
             if (mobileAuthContainer) {
                 mobileAuthContainer.innerHTML = `
-                    <span class="mobile-nav-link" style="font-weight: 600; color: #111;">Hello, ${data.user.name}</span>
-                    <a href="/api/auth/logout" class="mobile-nav-link" style="color: #d93b7c;">Logout</a>
+                    <div style="padding: 1rem 0; border-top: 1px solid var(--color-pink-100); width: 100%; text-align: center;">
+                        <span class="mobile-nav-link" style="color: var(--color-black); font-size: 1.1rem; display: block; margin-bottom: 0.5rem;">Hello, ${data.user.name}</span>
+                        <a href="/api/auth/logout" class="mobile-nav-link" style="color: var(--color-pink-600); font-size: 1.1rem;">Logout</a>
+                    </div>
                 `;
             }
         }
     } catch (err) {
-        console.error("Navbar authorization synchronizer dropped connection:", err);
+        console.error("Navbar authorization layout split-modifier dropped tracking:", err);
     }
 }
 
