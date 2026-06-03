@@ -40,11 +40,20 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid email or password.' });
         }
 
-        // Successful authentication
+        // =======================================================
+        // FIXED: ATTACH USER TO SESSION FOR EXPRESS-SESSION TO TRACK
+        // =======================================================
+        req.session.user = {
+            id: user._id,
+            name: user.name,
+            email: user.email
+        };
+
+        // Successful authentication response
         return res.json({ 
             success: true, 
             message: 'Logged in successfully!', 
-            user: { id: user._id, name: user.name, email: user.email } 
+            user: req.session.user
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Server error. Please try again.' });
