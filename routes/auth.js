@@ -62,4 +62,33 @@ router.post('/login', async (req, res) => {
     
 });
 
+// --- GET CURRENT USER SESSION STATE (FOR NAVBAR CHECK) ---
+router.get('/me', (req, res) => {
+    // If express-session has a user object attached, they are authenticated!
+    if (req.session && req.session.user) {
+        return res.json({
+            success: true,
+            loggedIn: true, // Frontend checks for this
+            user: req.session.user
+        });
+    } else {
+        // If no session exists, safely return false instead of a server crash
+        return res.json({
+            success: false,
+            loggedIn: false
+        });
+    }
+});
+
+// --- LOGOUT ENDPOINT (OPTIONAL BUT RECOMMENDED) ---
+router.get('/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: 'Could not log out' });
+        }
+        res.redirect('/'); // Sends them right back to the homepage after clearing the cookie
+    });
+});
+
+
 module.exports = router;
