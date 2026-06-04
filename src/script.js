@@ -722,7 +722,7 @@ async function syncNavbarSessionState() {
                 // FIXED: Added 'hide-mobile' to BOTH elements so they disappear on phones!
                 authHeaderContainer.innerHTML = `
                     <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600); font-weight: 600; margin-right: 12px;">LOG OUT</a>
-                    <a href="/profile" class="user-profile-badge hide-mobile" title="View Profile">
+                    <a href="/" class="user-profile-badge hide-mobile" title="View Profile">
                         ${initials}
                     </a>
                 `;
