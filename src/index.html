@@ -296,7 +296,7 @@
             <section class="hero-slider" id="heroSlider">
                 
                 <!-- Slide 1 -->
-                <div class="hero-slide active" style="background-image: url('../public/1.jpg');">
+                <div class="hero-slide active" style="background-image: url('/1.jpg');">
                     <div class="hero-grid">
                         <div class="hero-text">
                             <h2 class="hero-title">Gifts that feel personally yours</h2>
@@ -306,7 +306,7 @@
                 </div>
                 
                 <!-- Slide 2 -->
-                <div class="hero-slide" style="background-image: url('../public/2.jpg');">
+                <div class="hero-slide" style="background-image: url('/2.jpg');">
                     <div class="hero-grid">
                         <div class="hero-text">
                             <h2 class="hero-title">Unbox pure joy</h2>
@@ -316,7 +316,7 @@
                 </div>
 
                 <!-- Slide 3 -->
-                <div class="hero-slide" style="background-image: url('../public/3.jpg');">
+                <div class="hero-slide" style="background-image: url('/3.jpg');">
                     <div class="hero-grid">
                         <div class="hero-text">
                             <h2 class="hero-title">Celebrate in style</h2>
@@ -507,6 +507,83 @@
             </div>
         </footer>
     </div>
+    <!-- Embedded Scripts for Hero and Reviews Sliders to ensure flawless functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. HERO SLIDER LOGIC
+            const heroSlides = document.querySelectorAll('.hero-slide');
+            const heroDotsContainer = document.getElementById('sliderDots');
+            let currentHeroSlide = 0;
+            let heroInterval;
+
+            if (heroSlides.length > 0) {
+                heroSlides.forEach((_, idx) => {
+                    const dot = document.createElement('div');
+                    dot.classList.add('dot');
+                    if (idx === 0) dot.classList.add('active');
+                    dot.addEventListener('click', () => goToHeroSlide(idx));
+                    heroDotsContainer.appendChild(dot);
+                });
+
+                const heroDots = document.querySelectorAll('.hero-slider .dot');
+
+                function goToHeroSlide(index) {
+                    heroSlides[currentHeroSlide].classList.remove('active');
+                    heroDots[currentHeroSlide].classList.remove('active');
+                    currentHeroSlide = index;
+                    heroSlides[currentHeroSlide].classList.add('active');
+                    heroDots[currentHeroSlide].classList.add('active');
+                    resetHeroInterval();
+                }
+
+                function resetHeroInterval() {
+                    clearInterval(heroInterval);
+                    heroInterval = setInterval(() => {
+                        let next = (currentHeroSlide + 1) % heroSlides.length;
+                        goToHeroSlide(next);
+                    }, 5000);
+                }
+                resetHeroInterval();
+            }
+
+            // 2. TRUE INFINITE LOOP REVIEWS SLIDER (AUTO-ONLY)
+            const track = document.getElementById('reviewsTrack');
+            
+            if(track && track.children.length > 0) {
+                let reviewAutoPlay;
+
+                function moveNext() {
+                    // 1. Select the very first card
+                    const firstCard = track.children[0];
+                    
+                    // 2. Get exact move distance using the next sibling's left position
+                    const secondCard = track.children[1];
+                    const moveDistance = secondCard.getBoundingClientRect().left - firstCard.getBoundingClientRect().left;
+                    
+                    // 3. Smooth slide animation to the left
+                    track.style.transition = 'transform 0.5s ease-in-out';
+                    track.style.transform = `translateX(-${moveDistance}px)`;
+                    
+                    // 4. Wait for CSS to finish, then snap it back to 0 without animation, moving the element to the end of the line
+                    setTimeout(() => {
+                        track.style.transition = 'none';
+                        track.style.transform = 'translateX(0)';
+                        track.appendChild(firstCard);
+                    }, 500);
+                }
+
+                function startReviewAutoPlay() {
+                    reviewAutoPlay = setInterval(moveNext, 3000); 
+                }
+
+                // Pause the loop if a user hovers over a review to read it
+                track.addEventListener('mouseenter', () => clearInterval(reviewAutoPlay));
+                track.addEventListener('mouseleave', startReviewAutoPlay);
+                
+                startReviewAutoPlay();
+            }
+        });
+    </script>
     <script src="/script.js"></script>
 </body>
 </html>
