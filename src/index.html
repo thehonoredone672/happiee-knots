@@ -507,46 +507,12 @@
             </div>
         </footer>
     </div>
-    <!-- Embedded Scripts for Hero and Reviews Sliders to ensure flawless functionality -->
+    <script src="/script.js"></script>
+
+    <!-- Embedded Script for Reviews Slider (Hero slider is handled by script.js) -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. HERO SLIDER LOGIC
-            const heroSlides = document.querySelectorAll('.hero-slide');
-            const heroDotsContainer = document.getElementById('sliderDots');
-            let currentHeroSlide = 0;
-            let heroInterval;
-
-            if (heroSlides.length > 0) {
-                heroSlides.forEach((_, idx) => {
-                    const dot = document.createElement('div');
-                    dot.classList.add('dot');
-                    if (idx === 0) dot.classList.add('active');
-                    dot.addEventListener('click', () => goToHeroSlide(idx));
-                    heroDotsContainer.appendChild(dot);
-                });
-
-                const heroDots = document.querySelectorAll('.hero-slider .dot');
-
-                function goToHeroSlide(index) {
-                    heroSlides[currentHeroSlide].classList.remove('active');
-                    heroDots[currentHeroSlide].classList.remove('active');
-                    currentHeroSlide = index;
-                    heroSlides[currentHeroSlide].classList.add('active');
-                    heroDots[currentHeroSlide].classList.add('active');
-                    resetHeroInterval();
-                }
-
-                function resetHeroInterval() {
-                    clearInterval(heroInterval);
-                    heroInterval = setInterval(() => {
-                        let next = (currentHeroSlide + 1) % heroSlides.length;
-                        goToHeroSlide(next);
-                    }, 5000);
-                }
-                resetHeroInterval();
-            }
-
-            // 2. TRUE INFINITE LOOP REVIEWS SLIDER (AUTO-ONLY)
+            // TRUE INFINITE LOOP REVIEWS SLIDER (AUTO-ONLY)
             const track = document.getElementById('reviewsTrack');
             
             if(track && track.children.length > 0) {
@@ -564,7 +530,7 @@
                     track.style.transition = 'transform 0.5s ease-in-out';
                     track.style.transform = `translateX(-${moveDistance}px)`;
                     
-                    // 4. Wait for CSS to finish, then snap it back to 0 without animation, moving the element to the end of the line
+                    // 4. Wait for CSS to finish, then snap it back to 0 without animation
                     setTimeout(() => {
                         track.style.transition = 'none';
                         track.style.transform = 'translateX(0)';
@@ -584,6 +550,6 @@
             }
         });
     </script>
-    <!-- <script src="/script.js"></script> -->
+
 </body>
 </html>
