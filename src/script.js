@@ -754,7 +754,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function syncNavbarSessionState() {
     try {
-        // Query the custom endpoint you created on your Express backend
         const response = await fetch('/api/auth/me', { method: 'GET' });
         const data = await response.json();
 
@@ -762,7 +761,13 @@ async function syncNavbarSessionState() {
         const mobileAuthContainer = document.getElementById('mobileAuthContainer');
 
         if (data.success && data.user) {
-            // 1. Calculate the user's name initials dynamically (e.g., "Naveen Kumar" -> "NK")
+            // CRITICAL DEFENSIVE CHECK: If the profile badge is already on the screen, EXIT IMMEDIATELY!
+            if (authHeaderContainer && authHeaderContainer.querySelector('.user-profile-badge')) {
+                console.log("Profile badge already rendered. Skipping to prevent duplicates.");
+                return; 
+            }
+
+            // 1. Calculate initials safely
             const initials = data.user.name
                 .split(' ')
                 .map(part => part[0])
@@ -770,17 +775,17 @@ async function syncNavbarSessionState() {
                 .substring(0, 2)
                 .toUpperCase();
 
-            // 2. FIXED: Wipes login/signup and inserts BOTH the LOG OUT link and the ONE round profile badge
+            // 2. Clear out the old LOGIN/SIGNUP buttons completely and render exactly ONE layout set
             if (authHeaderContainer) {
                 authHeaderContainer.innerHTML = `
-                    <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600); font-weight: 600; margin-right: 5px;">LOG OUT</a>
-                    <a href="/profile" class="user-profile-badge" title="View Profile">
+                    <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600); font-weight: 600; margin-right: 12px; display: inline-block;">LOG OUT</a>
+                    <a href="/profile" class="user-profile-badge" style="display: inline-flex;" title="View Profile">
                         ${initials}
                     </a>
                 `;
             }
 
-            // 3. Update the slide-out mobile drawer view safely too
+            // 3. Update mobile view drawer menu uniformly
             if (mobileAuthContainer) {
                 mobileAuthContainer.innerHTML = `
                     <div style="padding: 1rem 0; border-top: 1px solid var(--color-pink-100); width: 100%; text-align: center;">
@@ -791,9 +796,10 @@ async function syncNavbarSessionState() {
             }
         }
     } catch (err) {
-        console.error("Navbar structural authorization state synchronization drop:", err);
+        console.error("Navbar authorization synchronization drop error context:", err);
     }
 }
+
 
 async function updateNavbarSession() {
     try {
