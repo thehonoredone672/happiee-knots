@@ -704,17 +704,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function syncNavbarSessionState() {
     try {
-        // Query your unified session status endpoint
         const response = await fetch('/api/auth/me', { method: 'GET' });
         const data = await response.json();
 
         const authHeaderContainer = document.getElementById('authHeaderContainer');
         const mobileAuthContainer = document.getElementById('mobileAuthContainer');
 
-        // If backend tells us the user is logged in
         if (data.success && data.user) {
-            
-            // 1. Calculate initials cleanly (e.g., "Naveen Kumar" -> "NK")
             const initials = data.user.name
                 .split(' ')
                 .map(part => part[0])
@@ -722,17 +718,16 @@ async function syncNavbarSessionState() {
                 .substring(0, 2)
                 .toUpperCase();
 
-            // 2. Clear out the container completely and insert LOG OUT text + ONE single profile badge
             if (authHeaderContainer) {
+                // FIXED: Added 'hide-mobile' to BOTH elements so they disappear on phones!
                 authHeaderContainer.innerHTML = `
-                    <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600); font-weight: 600; margin-right: 12px; display: inline-block;">LOG OUT</a>
-                    <a href="/" class="user-profile-badge" style="display: inline-flex;" title="View Profile">
+                    <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600); font-weight: 600; margin-right: 12px;">LOG OUT</a>
+                    <a href="/profile" class="user-profile-badge hide-mobile" title="View Profile">
                         ${initials}
                     </a>
                 `;
             }
 
-            // 3. Update the mobile navigation view drawer tray uniformly
             if (mobileAuthContainer) {
                 mobileAuthContainer.innerHTML = `
                     <div style="padding: 1rem 0; border-top: 1px solid var(--color-pink-100); width: 100%; text-align: center;">
@@ -743,10 +738,8 @@ async function syncNavbarSessionState() {
             }
         }
     } catch (err) {
-        console.error("Navbar structural authorization state synchronization error:", err);
+        console.error("Navbar structural authorization state synchronization drop:", err);
     }
 }
-
-
 
 
