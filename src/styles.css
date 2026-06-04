@@ -371,3 +371,10 @@ h1, h2, h3, h4, h5, h6 { font-weight: 600; line-height: 1.2; }
     display: flex !important;
 }
 
+/* Hide the entire authentication box on mobile devices completely */
+@media (max-width: 768px) {
+    #authHeaderContainer {
+        display: none !important;
+    }
+}
+
