@@ -695,79 +695,26 @@ if (checkoutForm) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    checkUserAuthentication();
-});
-
-async function checkUserAuthentication() {
-    try {
-        // Query your Express authentication middleware layer
-        const response = await fetch('/api/auth/me');
-        const data = await response.json();
-
-        if (data.success && data.user) {
-            // 1. Target your structural header elements
-            const headerRight = document.querySelector('.header-right');
-            const mobileMenu = document.getElementById('mobileMenu');
-
-            // 2. Locate and completely drop the static Login / Signup links out of view
-            const desktopLogin = headerRight.querySelector('a[href="/login"]');
-            const desktopSignup = headerRight.querySelector('a[href="/signup"]');
-            if (desktopLogin) desktopLogin.remove();
-            if (desktopSignup) desktopSignup.remove();
-
-            // 3. Generate initials from the user's logged name (e.g., "Naveen Kumar" -> "NK")
-            const nameParts = data.user.name.split(' ');
-            const initials = nameParts.map(part => part[0]).join('').substring(0, 2);
-
-            // 4. Inject the circular profile badge markup into the desktop navigation tray
-            const profileHTML = `
-                <a href="/profile" class="user-profile-badge" title="View Profile Layout">
-                    ${initials}
-                </a>
-            `;
-            // Inserts the profile icon right before your WhatsApp/Cart buttons
-            headerRight.insertAdjacentHTML('afterbegin', profileHTML);
-
-            // 5. Update the mobile navigation menu links dynamically as well
-            if (mobileMenu) {
-                const mobileLoginLink = mobileMenu.querySelector('a[href="/login"]');
-                if (mobileLoginLink) {
-                    mobileLoginLink.outerHTML = `
-                        <div style="padding: 12px 16px; border-top: 1px solid #f1f5f9; margin-top: 10px;">
-                            <span class="mobile-nav-link" style="font-weight: 600; color: #111;">Hello, ${data.user.name}</span>
-                            <a href="/api/auth/logout" class="mobile-nav-link" style="color: #d93b7c; margin-top: 8px;">Logout</a>
-                        </div>
-                    `;
-                }
-            }
-        }
-    } catch (err) {
-        console.error("Authentication check connection error context:", err);
-    }
-}
-
-
+// ========================================================
+//      ONE UNIFIED NAVBAR SESSION INITIALIZATION
+// ========================================================
 document.addEventListener('DOMContentLoaded', () => {
     syncNavbarSessionState();
 });
 
 async function syncNavbarSessionState() {
     try {
+        // Query your unified session status endpoint
         const response = await fetch('/api/auth/me', { method: 'GET' });
         const data = await response.json();
 
         const authHeaderContainer = document.getElementById('authHeaderContainer');
         const mobileAuthContainer = document.getElementById('mobileAuthContainer');
 
+        // If backend tells us the user is logged in
         if (data.success && data.user) {
-            // CRITICAL DEFENSIVE CHECK: If the profile badge is already on the screen, EXIT IMMEDIATELY!
-            if (authHeaderContainer && authHeaderContainer.querySelector('.user-profile-badge')) {
-                console.log("Profile badge already rendered. Skipping to prevent duplicates.");
-                return; 
-            }
-
-            // 1. Calculate initials safely
+            
+            // 1. Calculate initials cleanly (e.g., "Naveen Kumar" -> "NK")
             const initials = data.user.name
                 .split(' ')
                 .map(part => part[0])
@@ -775,7 +722,7 @@ async function syncNavbarSessionState() {
                 .substring(0, 2)
                 .toUpperCase();
 
-            // 2. Clear out the old LOGIN/SIGNUP buttons completely and render exactly ONE layout set
+            // 2. Clear out the container completely and insert LOG OUT text + ONE single profile badge
             if (authHeaderContainer) {
                 authHeaderContainer.innerHTML = `
                     <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600); font-weight: 600; margin-right: 12px; display: inline-block;">LOG OUT</a>
@@ -785,7 +732,7 @@ async function syncNavbarSessionState() {
                 `;
             }
 
-            // 3. Update mobile view drawer menu uniformly
+            // 3. Update the mobile navigation view drawer tray uniformly
             if (mobileAuthContainer) {
                 mobileAuthContainer.innerHTML = `
                     <div style="padding: 1rem 0; border-top: 1px solid var(--color-pink-100); width: 100%; text-align: center;">
@@ -796,44 +743,10 @@ async function syncNavbarSessionState() {
             }
         }
     } catch (err) {
-        console.error("Navbar authorization synchronization drop error context:", err);
+        console.error("Navbar structural authorization state synchronization error:", err);
     }
 }
 
 
-async function updateNavbarSession() {
-    try {
-        const response = await fetch('/api/auth/me', { method: 'GET' });
-        const data = await response.json();
 
-        const authHeaderContainer = document.getElementById('authHeaderContainer');
-        const mobileAuthContainer = document.getElementById('mobileAuthContainer');
 
-        if (data.success && data.user) {
-            // Calculate initials (e.g., "Naveen Kumar" -> "NK")
-            const initials = data.user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-
-            // FIXED: Wipes the login/signup layout completely and renders text LOG OUT + ONE round profile card
-            if (authHeaderContainer) {
-                authHeaderContainer.innerHTML = `
-                    <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600); font-weight: 600; margin-right: 5px;">LOG OUT</a>
-                    <a href="/profile" class="user-profile-badge" title="View Profile">
-                        ${initials}
-                    </a>
-                `;
-            }
-
-            // Handles slide-out responsive drawer navigation layouts uniformly
-            if (mobileAuthContainer) {
-                mobileAuthContainer.innerHTML = `
-                    <div style="padding: 1rem 0; border-top: 1px solid var(--color-pink-100); width: 100%; text-align: center;">
-                        <span class="mobile-nav-link" style="color: var(--color-black); font-size: 1.1rem; display: block; margin-bottom: 0.5rem;">Hello, ${data.user.name}</span>
-                        <a href="/api/auth/logout" class="mobile-nav-link" style="color: var(--color-pink-600); font-size: 1.1rem;">Logout</a>
-                    </div>
-                `;
-            }
-        }
-    } catch (err) {
-        console.error("Navbar visualization initialization sync drop:", err);
-    }
-}
