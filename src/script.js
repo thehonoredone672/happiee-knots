@@ -726,7 +726,7 @@ async function syncNavbarSessionState() {
             if (authHeaderContainer) {
                 authHeaderContainer.innerHTML = `
                     <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600); font-weight: 600; margin-right: 12px; display: inline-block;">LOG OUT</a>
-                    <a href="/profile" class="user-profile-badge" style="display: inline-flex;" title="View Profile">
+                    <a href="/" class="user-profile-badge" style="display: inline-flex;" title="View Profile">
                         ${initials}
                     </a>
                 `;
