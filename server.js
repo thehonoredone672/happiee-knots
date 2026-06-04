@@ -115,6 +115,16 @@ app.get('/admin', (req, res) => {
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'src', 'login.html')));
 app.get('/signup', (req, res) => res.sendFile(path.join(__dirname, 'src', 'signup.html')));
 
+
+// robots.txt
+app.get('/robots.txt', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'robots.txt'));
+});
+
+// sitemap.xml
+app.get('/sitemap.xml', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
+});
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server is up and running on http://localhost:${PORT}`);
