@@ -174,11 +174,12 @@
         const ADMIN_PASSWORD = "admin";
         
         // We use the global PRODUCTS array from script.js if available, or fallback to local storage
-        let adminProducts = (typeof PRODUCTS !== 'undefined' && PRODUCTS.length > 0) 
+                let adminProducts = (typeof PRODUCTS !== 'undefined' && PRODUCTS.length > 0) 
             ? PRODUCTS 
             : JSON.parse(localStorage.getItem('happiee_products')) || [];
             
-        let currentAdminPhotos = []; // Manage photos in edit state
+        let currentAdminPhotos = [];      // For base64 preview strings
+        let currentAdminFileObjects = []; // THE FIX: For tracking the actual raw binary files!
 
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
@@ -186,20 +187,31 @@
             // Handle new additive photo uploads in admin
             document.getElementById('productImageFiles').addEventListener('change', function() {
                 if (this.files && this.files.length > 0) {
-                    const promises = Array.from(this.files).map(file => {
+                    const selectedFiles = Array.from(this.files);
+
+                    // 1. Accumulate the raw files so your server can read them later
+                    currentAdminFileObjects = currentAdminFileObjects.concat(selectedFiles);
+
+                    // 2. Map promises to handle layout UI rendering
+                    const promises = selectedFiles.map(file => {
                         return new Promise(resolve => {
                             const reader = new FileReader();
                             reader.onload = e => resolve(e.target.result);
                             reader.readAsDataURL(file);
                         });
                     });
+                    
                     Promise.all(promises).then(results => {
                         currentAdminPhotos = currentAdminPhotos.concat(results);
                         renderAdminPhotoGallery();
+
+                        // Clear input field value so you can re-select the same file if needed
+                        document.getElementById('productImageFiles').value = '';
                     });
                 }
             });
         });
+        
 
         function checkAuth() {
             if (sessionStorage.getItem('happiee_admin_auth') === 'true') {
@@ -352,93 +364,108 @@
         // DEPLOYED BACKEND INTEGRATION LOGIC
         // ==========================================
         async function saveProduct() {
-            const id = document.getElementById('productId').value;
-            const name = document.getElementById('productName').value;
-            const price = parseFloat(document.getElementById('productPrice').value);
-            const description = document.getElementById('productDesc').value;
-            
-            if(!name || isNaN(price) || !description) {
-                alert("Please fill in all required fields.");
-                return;
-            }
+    const id = document.getElementById('productId').value;
+    const name = document.getElementById('productName').value;
+    const price = parseFloat(document.getElementById('productPrice').value);
+    const description = document.getElementById('productDesc').value;
+    
+    if(!name || isNaN(price) || !description) {
+        alert("Please fill in all required fields.");
+        return;
+    }
 
-            let category = document.getElementById('productCategory').value;
-            if (category === 'add_new') {
-                category = document.getElementById('newCategoryInput').value.trim();
-            }
+    let category = document.getElementById('productCategory').value;
+    if (category === 'add_new') {
+        category = document.getElementById('newCategoryInput').value.trim();
+    }
 
-            // Prepare Multipart Form Data Payload 
-            const formData = new FormData();
-            if (id) formData.append('id', id);
-            formData.append('name', name);
-            formData.append('price', price);
-            formData.append('category', category);
-            formData.append('description', description);
+    // Prepare Multipart Form Data Payload 
+    const formData = new FormData();
+    if (id) formData.append('id', id);
+    formData.append('name', name);
+    formData.append('price', price);
+    formData.append('category', category);
+    formData.append('description', description);
 
-            // Grab raw image files from HTML Input Element
-            const fileInput = document.getElementById('productImageFiles');
-            if (fileInput && fileInput.files.length > 0) {
-                for (let i = 0; i < fileInput.files.length; i++) {
-                    formData.append('productImages', fileInput.files[i]);
-                }
-            } else if (typeof currentAdminPhotos !== 'undefined' && currentAdminPhotos.length > 0) {
-                // Pass back existing image strings if no new files were selected
-                currentAdminPhotos.forEach(url => formData.append('existingImages', url));
-            }
-
-            try {
-                // Show user a subtle loading state while Cloudinary handles the upload
-                const saveButton = document.querySelector('.btn-save-product');
-                const originalText = saveButton.textContent;
-                saveButton.textContent = 'Uploading...';
-                saveButton.disabled = true;
-
-                const response = await fetch('/api/products/save', {
-                    method: 'POST', // Use POST for both; backend detects ID to handle updates
-                    body: formData  // Note: DO NOT set headers! Browser automatically formats Content-Type boundary parameters
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    alert('Product saved successfully! The store is instantly updated.');
-                    closeAdminModal();
-                    
-                    // Re-fetch the live backend data to re-render the dashboard accurately
-                    initDashboard();
-                } else {
-                    alert(data.message || 'Error saving product details.');
-                }
-                
-                saveButton.textContent = originalText;
-                saveButton.disabled = false;
-                
-            } catch (err) {
-                console.error('Network failure connecting to products API endpoint:', err);
-                alert('Could not synchronize product details with your server. Retaining local fallback mode.');
-                
-                // Fallback to local storage (from your original logic) in case the server is offline during dev
-                const saveButton = document.querySelector('.btn-save-product');
-                saveButton.textContent = 'Save Product Details';
-                saveButton.disabled = false;
-                
-                const primaryImage = currentAdminPhotos.length > 0 ? currentAdminPhotos[0] : 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=600&auto=format&fit=crop';
-                
-                if (id) {
-                    const index = adminProducts.findIndex(p => p.id === id);
-                    if (index !== -1) {
-                        adminProducts[index] = { id, name, category, price, image: primaryImage, images: currentAdminPhotos, description };
-                    }
-                } else {
-                    adminProducts.push({ id: 'prod_' + Date.now(), name, category, price, image: primaryImage, images: currentAdminPhotos, description });
-                }
-
-                localStorage.setItem('happiee_products', JSON.stringify(adminProducts));
-                closeAdminModal();
-                renderAdminTable();
-                populateCategoryDropdown();
-            }
+    // --- THE FIXED IMAGE PAYLOAD HANDLER ---
+    // 1. Check if there are tracked binary raw files from the additive array
+    if (typeof currentAdminFileObjects !== 'undefined' && currentAdminFileObjects.length > 0) {
+        // Limit upload stream data strictly to 5 elements max matching backend specs
+        const uploadLimit = Math.min(currentAdminFileObjects.length, 5);
+        for (let i = 0; i < uploadLimit; i++) {
+            formData.append('productImages', currentAdminFileObjects[i]);
         }
+    } 
+    
+    // 2. Handle retaining pre-existing product image strings from previous saves
+    if (typeof currentAdminPhotos !== 'undefined' && currentAdminPhotos.length > 0) {
+        currentAdminPhotos.forEach(url => {
+            // ONLY pass existing network URLs (Cloudinary). Skip newly added local Base64 blobs!
+            if (typeof url === 'string' && url.startsWith('http')) {
+                formData.append('existingImages', url);
+            }
+        });
+    }
+
+    try {
+        // Show user a subtle loading state while Cloudinary handles the upload
+        const saveButton = document.querySelector('.btn-save-product');
+        const originalText = saveButton.textContent;
+        saveButton.textContent = 'Uploading...';
+        saveButton.disabled = true;
+
+        const response = await fetch('/api/products/save', {
+            method: 'POST', // Use POST for both; backend detects ID to handle updates
+            body: formData  // Note: DO NOT set headers! Browser automatically formats Content-Type boundary parameters
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('Product saved successfully! The store is instantly updated.');
+            
+            // RESET binary file tracker on success state clear down
+            if (typeof currentAdminFileObjects !== 'undefined') {
+                currentAdminFileObjects = [];
+            }
+            
+            closeAdminModal();
+            // Re-fetch the live backend data to re-render the dashboard accurately
+            initDashboard();
+        } else {
+            alert(data.message || 'Error saving product details.');
+        }
+        
+        saveButton.textContent = originalText;
+        saveButton.disabled = false;
+        
+    } catch (err) {
+        console.error('Network failure connecting to products API endpoint:', err);
+        alert('Could not synchronize product details with your server. Retaining local fallback mode.');
+        
+        // Fallback to local storage in case the server is offline during dev
+        const saveButton = document.querySelector('.btn-save-product');
+        saveButton.textContent = 'Save Product Details';
+        saveButton.disabled = false;
+        
+        const primaryImage = currentAdminPhotos.length > 0 ? currentAdminPhotos[0] : 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=600&auto=format&fit=crop';
+        
+        if (id) {
+            const index = adminProducts.findIndex(p => p.id === id);
+            if (index !== -1) {
+                adminProducts[index] = { id, name, category, price, image: primaryImage, images: currentAdminPhotos, description };
+            }
+        } else {
+            adminProducts.push({ id: 'prod_' + Date.now(), name, category, price, image: primaryImage, images: currentAdminPhotos, description });
+        }
+
+        localStorage.setItem('happiee_products', JSON.stringify(adminProducts));
+        closeAdminModal();
+        renderAdminTable();
+        populateCategoryDropdown();
+    }
+        }
+        
 
 async function deleteProduct(id) {
     if(id === '6') {
