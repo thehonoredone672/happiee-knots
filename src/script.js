@@ -711,6 +711,7 @@ async function syncNavbarSessionState() {
         const mobileAuthContainer = document.getElementById('mobileAuthContainer');
 
         if (data.success && data.user) {
+            // 1. Calculate the user's name initials dynamically (e.g., "Naveen Kumar" -> "NK")
             const initials = data.user.name
                 .split(' ')
                 .map(part => part[0])
@@ -718,21 +719,26 @@ async function syncNavbarSessionState() {
                 .substring(0, 2)
                 .toUpperCase();
 
+            // 2. Desktop Navigation Update: Changes LOGIN/SIGNUP to LOG OUT + Profile Circle
             if (authHeaderContainer) {
-                // FIXED: Added 'hide-mobile' to BOTH elements so they disappear on phones!
                 authHeaderContainer.innerHTML = `
-                    <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600); font-weight: 600; margin-right: 12px;">LOG OUT</a>
-                    <a href="/" class="user-profile-badge hide-mobile" title="View Profile">
+                    <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600); font-weight: 600; margin-right: 12px; display: inline-block;">LOG OUT</a>
+                    <a href="/profile" class="user-profile-badge" style="display: inline-flex;" title="View Profile">
                         ${initials}
                     </a>
                 `;
             }
 
+            // 3. FIXED: Mobile View Menu Update (Removes Login/Signup and injects personalized state)
             if (mobileAuthContainer) {
                 mobileAuthContainer.innerHTML = `
-                    <div style="padding: 1rem 0; border-top: 1px solid var(--color-pink-100); width: 100%; text-align: center;">
-                        <span class="mobile-nav-link" style="color: var(--color-black); font-size: 1rem; display: block; margin-bottom: 0.5rem;">Hello, ${data.user.name.split(' ')[0]}</span>
-                        <a href="/api/auth/logout" class="mobile-nav-link" style="color: var(--color-pink-600); font-size: 1rem;">Logout</a>
+                    <div style="padding: 1rem 0; border-top: 1px solid var(--color-pink-100); margin-top: 10px; width: 100%; text-align: center;">
+                        <span class="mobile-nav-link" style="color: var(--color-black); font-size: 1.1rem; display: block; margin-bottom: 0.5rem; text-transform: none; font-family: 'Outfit', sans-serif;">
+                            Hello, ${data.user.name.split(' ')[0]}
+                        </span>
+                        <a href="/api/auth/logout" class="mobile-nav-link" style="color: var(--color-pink-600); font-size: 1.1rem; font-weight: 700;">
+                            LOGOUT
+                        </a>
                     </div>
                 `;
             }
@@ -741,5 +747,3 @@ async function syncNavbarSessionState() {
         console.error("Navbar structural authorization state synchronization drop:", err);
     }
 }
-
-
