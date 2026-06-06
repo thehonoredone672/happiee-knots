@@ -682,7 +682,7 @@ if (checkoutForm) {
         const encodedMessage = encodeURIComponent(textMessage);
         
         // Target WhatsApp Number
-        const whatsAppLink = `https://wa.me/918056236197?text=${encodedMessage}`;
+        const whatsAppLink = `https://wa.me/919025681308?text=${encodedMessage}`;
 
         // Clear cart
         cart = [];
