@@ -586,13 +586,22 @@ document.getElementById('modalAddCustomToCartBtn').addEventListener('click', asy
 
 
 window.updateCartItemQty = (cartItemId, delta) => {
-    const item = cart.find(i => i.cartItemId === cartItemId);
-    if (item) {
-        item.quantity += delta;
-        if (item.quantity <= 0) cart = cart.filter(i => i.cartItemId !== cartItemId);
-        syncCartWithLocalDB();
+    // Find by index so we can safely modify or remove it
+    const index = cart.findIndex(i => i.cartItemId === cartItemId);
+    
+    if (index !== -1) {
+        cart[index].quantity += delta;
+        
+        // If quantity drops to 0 or below, remove it entirely
+        if (cart[index].quantity <= 0) {
+            cart.splice(index, 1); // Directly removes the item from the array
+        }
+        
+        syncCartWithLocalDB(); // Save changes to localStorage
+        updateCartUI();        // CRITICAL: Force the UI to refresh and hide the item!
     }
 }
+
 
 function updateCartUI() {
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
