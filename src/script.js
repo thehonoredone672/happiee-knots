@@ -507,19 +507,83 @@ function syncModalQtyDisplay() {
 // ========================================
 // CART CRUD LOGIC 
 // ========================================
-window.addToCart = (productId, quantity = 1, customDetailsText = null, customPhotosBase64 = []) => {
-    const cartItemId = (customDetailsText || customPhotosBase64.length > 0) ? `${productId}-${Date.now()}` : productId;
+window.addToCart = (productId, quantity = 1, customDetailsText = null, customPhotosBase64 = [], customCloudinaryUrls = []) => {
+    // Generate a unique ID if it's a personalized item
+    const isCustom = (customDetailsText || customPhotosBase64.length > 0 || customCloudinaryUrls.length > 0);
+    const cartItemId = isCustom ? `${productId}-${Date.now()}` : productId;
+    
     const existing = cart.find(item => item.cartItemId === cartItemId);
     
     if (existing && cartItemId === productId) {
         existing.quantity += quantity;
     } else {
-        cart.push({ productId, cartItemId, quantity, customDetailsText, customPhotosBase64 });
+        cart.push({ 
+            productId, 
+            cartItemId, 
+            quantity, 
+            customDetailsText, 
+            customPhotosBase64,       // Kept as a local backup if needed
+            customCloudinaryUrls      // Clean HTTP links for WhatsApp
+        });
     }
     
     syncCartWithLocalDB();
     showNotification(`Item added to bag!`);
 }
+
+
+async function uploadPhotosToCloudinary(base64Array) {
+    if (!base64Array || base64Array.length === 0) return [];
+
+    const uploadPromises = base64Array.map(async (base64Data) => {
+        // If it's already an HTTP link (e.g., during an edit), don't re-upload it
+        if (base64Data.startsWith('http')) return base64Data;
+
+        const formData = new FormData();
+        formData.append('file', base64Data);
+        // Replace with your actual Unsigned Upload Preset and Cloud Name from Cloudinary
+        formData.append('upload_preset', 'YOUR_UNSIGNED_PRESET'); 
+
+        try {
+            const response = await fetch('https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            return data.secure_url; // Returns the "https://res.cloudinary.com/..." link
+        } catch (error) {
+            console.error("Cloudinary upload failed for an image:", error);
+            return null;
+        }
+    });
+
+    const results = await Promise.all(uploadPromises);
+    return results.filter(url => url !== null); // Filter out any failed uploads
+}
+
+
+// Example event handler for your Modal Add/Update Button
+document.getElementById('modalAddCustomToCartBtn').addEventListener('click', async function() {
+    // 1. Show a loading state (highly recommended as upload takes 1-2 seconds)
+    this.textContent = "Uploading images...";
+    this.disabled = true;
+
+    // 2. Gather data from your modal state
+    const qty = currentModalQty;
+    const detailsText = document.getElementById('customDetails').value;
+    
+    // 3. Upload base64 images to Cloudinary to get HTTP links
+    const cloudinaryLinks = await uploadPhotosToCloudinary(currentUploadedPhotos);
+
+    // 4. Send everything to your updated addToCart function
+    window.addToCart(currentModalProductId, qty, detailsText, currentUploadedPhotos, cloudinaryLinks);
+
+    // 5. Reset button and close modal
+    this.textContent = "Add to Bag";
+    this.disabled = false;
+    closeProductModal(); 
+});
+
 
 window.updateCartItemQty = (cartItemId, delta) => {
     const item = cart.find(i => i.cartItemId === cartItemId);
