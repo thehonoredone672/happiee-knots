@@ -18,6 +18,10 @@ let currentModalSlide = 0;
 let modalSlideCount = 0;
 let modalAutoSlideInterval;
 
+// Cloudinary Configuration Constants
+const CLOUDINARY_UPLOAD_PRESET = 'YOUR_UNSIGNED_PRESET'; // Change to your setup
+const CLOUDINARY_CLOUD_NAME = 'YOUR_CLOUD_NAME';         // Change to your setup
+
 document.addEventListener('DOMContentLoaded', () => {
     setupMobileMenu();
     ensureModalMarkup();
@@ -27,11 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (isHomePage) initializeHeroSlider();
     
-    // Trigger Database Stream ingestion if the viewport resides on the products catalogue page
     if (isProductsPage) {
         initializeProductsPage();
     } else {
-        // If not on products page, we still need PRODUCTS to sync the cart properly
         fetchProductsAndSyncCart();
     }
 });
@@ -54,7 +56,6 @@ async function fetchProductsAndSyncCart() {
         console.error("Failed synchronizing real-time catalog from MongoDB database instance:", err);
     }
 
-    // Ensure Custom Order Base exists for personalization routing if not provided by DB
     if (!PRODUCTS.find(p => p.category === 'Personalized')) {
         PRODUCTS.push({
             id: '6', _id: '6', name: 'Custom Order Base', category: 'Personalized', price: 0,
@@ -87,6 +88,76 @@ function syncCartWithLocalDB() {
 }
 
 // ========================================
+// ADD & UPDATE QUANTITY OPERATIONS (FIXED)
+// ========================================
+window.addToCart = (productId, quantity = 1, customDetailsText = null, customPhotosBase64 = [], customCloudinaryUrls = []) => {
+    const isCustom = (customDetailsText || customPhotosBase64.length > 0 || customCloudinaryUrls.length > 0);
+    const cartItemId = isCustom ? `${productId}-${Date.now()}` : productId;
+    
+    const existing = cart.find(item => item.cartItemId === cartItemId);
+    
+    if (existing && cartItemId === productId) {
+        existing.quantity += quantity;
+    } else {
+        cart.push({ 
+            productId, 
+            cartItemId, 
+            quantity, 
+            customDetailsText, 
+            customPhotosBase64,       
+            customCloudinaryUrls      
+        });
+    }
+    
+    syncCartWithLocalDB();
+    showNotification(`Item added to bag!`);
+}
+
+window.updateCartItemQty = (cartItemId, delta) => {
+    const index = cart.findIndex(i => i.cartItemId === cartItemId);
+    if (index !== -1) {
+        cart[index].quantity += delta;
+        
+        // Safe splice deletion that handles both 'let' and 'const' arrays cleanly
+        if (cart[index].quantity <= 0) {
+            cart.splice(index, 1);
+        }
+        
+        syncCartWithLocalDB();
+    }
+}
+
+// ========================================
+// ASYNCHRONOUS CLOUDINARY CORE ENGINE
+// ========================================
+async function uploadPhotosToCloudinary(base64Array) {
+    if (!base64Array || base64Array.length === 0) return [];
+
+    const uploadPromises = base64Array.map(async (base64Data) => {
+        if (base64Data.startsWith('http')) return base64Data; // Bypass re-upload if it's already a URL
+
+        const formData = new FormData();
+        formData.append('file', base64Data);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET); 
+
+        try {
+            const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            return data.secure_url; 
+        } catch (error) {
+            console.error("Cloudinary upload error instance:", error);
+            return null;
+        }
+    });
+
+    const results = await Promise.all(uploadPromises);
+    return results.filter(url => url !== null);
+}
+
+// ========================================
 // UI & NAVIGATION SETUP
 // ========================================
 function setupMobileMenu() {
@@ -106,13 +177,16 @@ function setupMobileMenu() {
     const cartBtns = document.querySelectorAll('.cart-btn');
     cartBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            if(window.location.pathname.includes('cart') || window.location.pathname.includes('cart.html')) return;
+            if(window.location.pathname.includes('cart')) return;
             e.preventDefault(); 
             window.location.href = "/cart";
         });
     });
 
-    document.getElementById('clearCartBtn')?.addEventListener('click', () => { cart = []; syncCartWithLocalDB(); });
+    document.getElementById('clearCartBtn')?.addEventListener('click', () => { 
+        cart = []; 
+        syncCartWithLocalDB(); 
+    });
 }
 
 // ========================================
@@ -121,9 +195,10 @@ function setupMobileMenu() {
 function initializeHeroSlider() {
     const slides = document.querySelectorAll('#heroSlider .hero-slide');
     const dotsContainer = document.getElementById('sliderDots');
-    if (slides.length === 0) return;
+    if (slides.length === 0 || !dotsContainer) return;
     
     let currentSlide = 0;
+    dotsContainer.innerHTML = ''; // Clear previous iterations
     slides.forEach((_, idx) => {
         const dot = document.createElement('div');
         dot.classList.add('dot');
@@ -134,6 +209,7 @@ function initializeHeroSlider() {
 
     const dots = document.querySelectorAll('.dot');
     function goToSlide(index) {
+        if(!slides[currentSlide]) return;
         slides[currentSlide].classList.remove('active');
         dots[currentSlide].classList.remove('active');
         currentSlide = index;
@@ -155,7 +231,7 @@ function initializeHeroSlider() {
 // PRODUCTS PAGE LOGIC
 // ========================================
 async function initializeProductsPage() {
-    await fetchProductsAndSyncCart(); // Await the fetch before populating filters
+    await fetchProductsAndSyncCart(); 
 
     const categorySelect = document.getElementById('categorySelect');
     if(categorySelect) {
@@ -172,15 +248,216 @@ async function initializeProductsPage() {
     const catParam = urlParams.get('category');
     if (catParam && categorySelect) categorySelect.value = catParam;
     
-    if(modalSlideCount > 1) {
-        modalAutoSlideInterval = setInterval(() => moveModalSlider(1), 4000);
+    applyFilters();
+}
+
+function applyFilters() {
+    const searchTerm = document.getElementById('collectionSearch')?.value.toLowerCase() || '';
+    const category = document.getElementById('categorySelect')?.value || 'all';
+    const sort = document.getElementById('sortSelect')?.value || 'newest';
+
+    let filtered = PRODUCTS.filter(p => {
+        if(p.category === 'Personalized') return false; 
+        const matchesSearch = p.name.toLowerCase().includes(searchTerm);
+        const matchesCategory = category === 'all' || p.category === category;
+        return matchesSearch && matchesCategory;
+    });
+
+    if (sort === 'price-low') filtered.sort((a, b) => a.price - b.price);
+    else if (sort === 'price-high') filtered.sort((a, b) => b.price - a.price);
+
+    renderProducts(filtered);
+}
+
+function renderProducts(products) {
+    const countEl = document.getElementById('productCount');
+    if(countEl) countEl.textContent = products.length;
+    
+    const productsGrid = document.getElementById('productsGrid');
+    if(!productsGrid) return;
+    
+    productsGrid.innerHTML = products.map(product => {
+        const displayImg = product.images?.[0] || product.image;
+        return `
+        <div class="product-card" onclick="openProductModal('${product.id}')">
+            <div class="product-image">
+                <img src="${displayImg}" alt="${product.name}">
+            </div>
+            <div class="product-info">
+                <div>
+                    <div class="product-title-row">
+                        <h3 class="product-name heading-font">${product.name}</h3>
+                        <span class="product-price">₹${product.price.toLocaleString()}</span>
+                    </div>
+                    <p class="product-category">${product.category}</p>
+                </div>
+                <button class="product-add-btn" onclick="event.stopPropagation(); addToCart('${product.id}', 1)">Add</button>
+            </div>
+        </div>
+    `}).join('');
+}
+
+// ========================================
+// DYNAMIC MODAL GENERATION & BINDING
+// ========================================
+function ensureModalMarkup() {
+    if (!document.getElementById('productModal')) {
+        const modalHTML = `
+        <div class="modal-overlay" id="productModal" style="display:none">
+            <div class="modal-content">
+                <button class="close-modal-btn" id="closeModalBtn">&times;</button>
+                <div class="modal-grid">
+                    <div id="standardLeftArea">
+                        <div class="modal-main-img-wrapper">
+                            <button class="modal-slider-arrow prev" onclick="moveModalSlider(-1)">&#10094;</button>
+                            <div class="modal-slider-track" id="modalSliderTrack"></div>
+                            <button class="modal-slider-arrow next" onclick="moveModalSlider(1)">&#10095;</button>
+                        </div>
+                        <div class="modal-thumbnails" id="modalThumbnails"></div>
+                    </div>
+                    <div class="modal-upload-container" id="personalizedLeftArea" style="display:none;">
+                        <label class="upload-box">
+                            <input type="file" id="customPhotos" accept="image/*" multiple class="custom-file-input-hidden">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-pink-500)" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <p class="upload-title heading-font">Upload Reference Photo(s)</p>
+                            <p class="upload-subtitle text-muted">Click or drop multiple images here to add to gallery.</p>
+                        </label>
+                        <div id="uploadFileGallery"></div>
+                    </div>
+                    <div class="modal-info">
+                        <p class="modal-category" id="modalCategory"></p>
+                        <h2 class="modal-title heading-font" id="modalTitle"></h2>
+                        <div id="standardDetailsArea">
+                            <p class="modal-price" id="modalPrice"></p>
+                            <div class="modal-desc" id="modalDesc"></div>
+                        </div>
+                        <div id="standardCheckoutArea">
+                            <div class="modal-qty-container">
+                                <span class="modal-qty-label">Quantity:</span>
+                                <div class="qty-selector" style="background: white;">
+                                    <button class="qty-btn" id="modalQtyMinus">−</button>
+                                    <span class="qty-val" id="modalQtyVal">1</span>
+                                    <button class="qty-btn" id="modalQtyPlus">+</button>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="modalAddToCartBtn" style="width: 100%; border-radius: 8px;">Add to Bag</button>
+                        </div>
+                        <div id="personalizedCheckoutArea" style="display:none;">
+                            <label class="custom-label">Customization Details</label>
+                            <textarea id="customDetails" rows="6" class="custom-textarea" placeholder="Enter custom names, dates, colors, specific themes or requests..."></textarea>
+                            <div class="modal-qty-container" style="margin-bottom: 1.5rem;">
+                                <span class="modal-qty-label">Quantity:</span>
+                                <div class="qty-selector" style="background: white;">
+                                    <button class="qty-btn" id="modalCustomQtyMinus">−</button>
+                                    <span class="qty-val" id="modalCustomQtyVal">1</span>
+                                    <button class="qty-btn" id="modalCustomQtyPlus">+</button>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="modalAddCustomToCartBtn" style="width: 100%; border-radius: 8px;">Add Custom Order to Bag</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
     }
+    bindModalEvents();
 }
 
-window.moveModalSlider = (direction) => {
-    slideToModalImage(currentModalSlide + direction);
+function bindModalEvents() {
+    document.getElementById('closeModalBtn').addEventListener('click', closeProductModal);
+    document.getElementById('productModal').addEventListener('click', (e) => {
+        if(e.target === document.getElementById('productModal')) closeProductModal();
+    });
+    
+    document.getElementById('modalQtyMinus').addEventListener('click', () => updateModalQty(-1));
+    document.getElementById('modalQtyPlus').addEventListener('click', () => updateModalQty(1));
+    document.getElementById('modalAddToCartBtn').addEventListener('click', () => {
+        addToCart(currentModalProductId, currentModalQty);
+        closeProductModal();
+    });
+
+    document.getElementById('modalCustomQtyMinus').addEventListener('click', () => updateModalQty(-1));
+    document.getElementById('modalCustomQtyPlus').addEventListener('click', () => updateModalQty(1));
+    
+    const photoUploadInput = document.getElementById('customPhotos');
+    if (photoUploadInput) {
+        photoUploadInput.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                const photoPromises = Array.from(this.files).map(file => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(file);
+                    });
+                });
+                Promise.all(photoPromises).then(base64Photos => {
+                    currentUploadedPhotos = currentUploadedPhotos.concat(base64Photos);
+                    renderModalUploadGallery();
+                });
+            }
+        });
+    }
+
+    // INTERCEPT SAVE WITH ASYNC AWAIT SO ORDER/UPDATE CANNOT CRASH
+    document.getElementById('modalAddCustomToCartBtn').addEventListener('click', async function() {
+        const customDetails = document.getElementById('customDetails').value;
+        if(!customDetails.trim() && currentUploadedPhotos.length === 0) {
+            alert("Please provide customization details or upload a photo before adding to bag.");
+            return;
+        }
+
+        // Lock button during remote async pipeline execution
+        this.textContent = "Processing Custom Attachments...";
+        this.disabled = true;
+
+        // Fire off network thread to secure permanent image endpoints
+        const cloudinaryLinks = await uploadPhotosToCloudinary(currentUploadedPhotos);
+
+        if(editingCartItemId) {
+            const item = cart.find(i => i.cartItemId === editingCartItemId);
+            if(item) {
+                item.quantity = currentModalQty;
+                item.customDetailsText = customDetails;
+                item.customPhotosBase64 = currentUploadedPhotos;
+                item.customCloudinaryUrls = cloudinaryLinks; 
+            }
+            syncCartWithLocalDB();
+            closeProductModal();
+            showNotification(`Cart Updated!`);
+        } else {
+            addToCart(currentModalProductId, currentModalQty, customDetails, currentUploadedPhotos, cloudinaryLinks);
+            closeProductModal();
+        }
+
+        this.textContent = "Add Custom Order to Bag";
+        this.disabled = false;
+    });
 }
 
+function renderModalUploadGallery() {
+    const galleryContainer = document.getElementById('uploadFileGallery');
+    if(!galleryContainer) return;
+    galleryContainer.innerHTML = ''; 
+    currentUploadedPhotos.forEach((src, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'thumbnail-wrapper';
+        wrapper.innerHTML = `
+            <img src="${src}">
+            <button class="remove-thumb-btn" onclick="removeModalPhoto(${index})">&times;</button>
+        `;
+        galleryContainer.appendChild(wrapper);
+    });
+}
+
+window.removeModalPhoto = (index) => {
+    currentUploadedPhotos.splice(index, 1);
+    renderModalUploadGallery();
+}
+
+// ROUTING RE-ENTRY FROM CART EDIT ENGINE
 window.editCustomOrder = (cartItemId) => {
     const item = cart.find(i => i.cartItemId === cartItemId);
     if(!item) return;
@@ -190,224 +467,9 @@ window.editCustomOrder = (cartItemId) => {
     currentModalQty = item.quantity;
     currentUploadedPhotos = item.customPhotosBase64 ? [...item.customPhotosBase64] : [];
     
-    document.getElementById('modalCategory').textContent = item.liveCategory;
-    document.getElementById('modalTitle').textContent = item.liveName;
+    document.getElementById('modalCategory').textContent = item.liveCategory || 'Personalized';
+    document.getElementById('modalTitle').textContent
 
-    document.getElementById('standardLeftArea').style.display = 'none';
-    document.getElementById('standardDetailsArea').style.display = 'none';
-    document.getElementById('standardCheckoutArea').style.display = 'none';
-    
-    document.getElementById('personalizedLeftArea').style.display = 'flex';
-    document.getElementById('personalizedCheckoutArea').style.display = 'block';
-
-    document.getElementById('customDetails').value = item.customDetailsText || '';
-    document.getElementById('modalAddCustomToCartBtn').textContent = "Update Custom Order";
-    syncModalQtyDisplay();
-    renderModalUploadGallery();
-
-    const modal = document.getElementById('productModal');
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-}
-
-function closeProductModal() {
-    document.getElementById('productModal').style.display = 'none';
-    document.body.style.overflow = 'auto';
-    clearInterval(modalAutoSlideInterval);
-}
-
-function updateModalQty(delta) {
-    if(currentModalQty + delta > 0) {
-        currentModalQty += delta;
-        syncModalQtyDisplay();
-    }
-}
-
-function syncModalQtyDisplay() {
-    if(document.getElementById('modalQtyVal')) document.getElementById('modalQtyVal').textContent = currentModalQty;
-    if(document.getElementById('modalCustomQtyVal')) document.getElementById('modalCustomQtyVal').textContent = currentModalQty;
-}
-
-// ========================================
-// CART CRUD LOGIC 
-// ========================================
-window.addToCart = (productId, quantity = 1, customDetailsText = null, customPhotosBase64 = [], customCloudinaryUrls = []) => {
-    // Generate a unique ID if it's a personalized item
-    const isCustom = (customDetailsText || customPhotosBase64.length > 0 || customCloudinaryUrls.length > 0);
-    const cartItemId = isCustom ? `${productId}-${Date.now()}` : productId;
-    
-    const existing = cart.find(item => item.cartItemId === cartItemId);
-    
-    if (existing && cartItemId === productId) {
-        existing.quantity += quantity;
-    } else {
-        cart.push({ 
-            productId, 
-            cartItemId, 
-            quantity, 
-            customDetailsText, 
-            customPhotosBase64,       // Kept as a local backup if needed
-            customCloudinaryUrls      // Clean HTTP links for WhatsApp
-        });
-    }
-    
-    syncCartWithLocalDB();
-    showNotification(`Item added to bag!`);
-}
-
-
-async function uploadPhotosToCloudinary(base64Array) {
-    if (!base64Array || base64Array.length === 0) return [];
-
-    const uploadPromises = base64Array.map(async (base64Data) => {
-        // If it's already an HTTP link (e.g., during an edit), don't re-upload it
-        if (base64Data.startsWith('http')) return base64Data;
-
-        const formData = new FormData();
-        formData.append('file', base64Data);
-        // Replace with your actual Unsigned Upload Preset and Cloud Name from Cloudinary
-        formData.append('upload_preset', 'YOUR_UNSIGNED_PRESET'); 
-
-        try {
-            const response = await fetch('https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            return data.secure_url; // Returns the "https://res.cloudinary.com/..." link
-        } catch (error) {
-            console.error("Cloudinary upload failed for an image:", error);
-            return null;
-        }
-    });
-
-    const results = await Promise.all(uploadPromises);
-    return results.filter(url => url !== null); // Filter out any failed uploads
-}
-
-
-// Example event handler for your Modal Add/Update Button
-document.getElementById('modalAddCustomToCartBtn').addEventListener('click', async function() {
-    // 1. Show a loading state (highly recommended as upload takes 1-2 seconds)
-    this.textContent = "Uploading images...";
-    this.disabled = true;
-
-    // 2. Gather data from your modal state
-    const qty = currentModalQty;
-    const detailsText = document.getElementById('customDetails').value;
-    
-    // 3. Upload base64 images to Cloudinary to get HTTP links
-    const cloudinaryLinks = await uploadPhotosToCloudinary(currentUploadedPhotos);
-
-    // 4. Send everything to your updated addToCart function
-    window.addToCart(currentModalProductId, qty, detailsText, currentUploadedPhotos, cloudinaryLinks);
-
-    // 5. Reset button and close modal
-    this.textContent = "Add to Bag";
-    this.disabled = false;
-    closeProductModal(); 
-});
-
-
-window.updateCartItemQty = (cartItemId, delta) => {
-    // Find by index so we can safely modify or remove it
-    const index = cart.findIndex(i => i.cartItemId === cartItemId);
-    
-    if (index !== -1) {
-        cart[index].quantity += delta;
-        
-        // If quantity drops to 0 or below, remove it entirely
-        if (cart[index].quantity <= 0) {
-            cart.splice(index, 1); // Directly removes the item from the array
-        }
-        
-        syncCartWithLocalDB(); // Save changes to localStorage
-        updateCartUI();        // CRITICAL: Force the UI to refresh and hide the item!
-    }
-}
-
-
-function updateCartUI() {
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    
-    document.querySelectorAll('.cart-badge').forEach(badge => {
-        badge.textContent = totalItems;
-        badge.style.display = totalItems > 0 ? 'flex' : 'none';
-    });
-    document.querySelectorAll('.cartCountLabel').forEach(label => label.textContent = totalItems);
-
-    const cartPageContainer = document.getElementById('cartPageContainer');
-
-    if (cart.length === 0) {
-        if(cartPageContainer) cartPageContainer.classList.add('is-empty');
-        document.querySelectorAll('.cart-empty-state-wrapper').forEach(el => el.style.display = 'flex');
-        document.querySelectorAll('.cart-items').forEach(el => el.innerHTML = '');
-        document.querySelectorAll('.cart-summary-section').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.cart-controls').forEach(el => el.style.display = 'none');
-    } else {
-        if(cartPageContainer) cartPageContainer.classList.remove('is-empty');
-        document.querySelectorAll('.cart-empty-state-wrapper').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.cart-summary-section').forEach(el => el.style.display = 'block');
-        document.querySelectorAll('.cart-controls').forEach(el => el.style.display = 'flex');
-        renderCartItems();
-    }
-}
-
-function renderCartItems() {
-    const cartItemsContainers = document.querySelectorAll('.cart-items');
-    if(cartItemsContainers.length === 0) return;
-
-    const cartHTML = cart.map(item => {
-        const hasPhotos = item.customPhotosBase64 && item.customPhotosBase64.length > 0;
-        const isPersonalized = item.liveCategory === 'Personalized';
-        
-        return `
-        <div class="cart-item">
-            <div class="cart-item-image" ${isPersonalized ? `onclick="editCustomOrder('${item.cartItemId}')" style="cursor:pointer;" title="Edit Custom Order"` : ''}>
-                <img src="${hasPhotos ? item.customPhotosBase64[0] : item.liveImage}" alt="${item.liveName}">
-            </div>
-            <div class="cart-item-content">
-                <div class="cart-item-header">
-                    <div>
-                        <div class="cart-item-name heading-font">${item.liveName}</div>
-                        <div class="cart-item-cat">${item.liveCategory}</div>
-                    </div>
-                    ${item.livePrice > 0 ? `<div class="cart-item-price">₹${(item.livePrice * item.quantity).toLocaleString()}</div>` : `<div class="cart-item-price">TBD</div>`}
-                </div>
-                
-                ${isPersonalized ? `
-                    <div class="cart-item-custom-info">
-                        <p style="font-size: 0.85rem; color: var(--color-gray-700); margin-bottom: 6px;"><b>Notes:</b> ${item.customDetailsText || 'None'}</p>
-                        ${!hasPhotos ? '<p style="font-size: 0.8rem; color: var(--color-pink-600); margin-bottom: 6px;">No photo uploaded.</p>' : `
-                        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; cursor:pointer;" onclick="editCustomOrder('${item.cartItemId}')">
-                            ${item.customPhotosBase64.map(src => `<img src="${src}" style="width: 32px; height: 32px; border-radius: 4px; object-fit: cover; border: 1px solid var(--color-pink-200);">`).join('')}
-                        </div>
-                        `}
-                        <button onclick="editCustomOrder('${item.cartItemId}')" style="font-size: 0.8rem; font-weight: 600; color: var(--color-pink-600); text-decoration: underline; padding: 0; background: none; border: none; cursor: pointer;">Edit Personalization</button>
-                    </div>
-                ` : ''}
-
-                <div class="cart-item-actions">
-                    <div class="qty-selector">
-                        <button class="qty-btn" onclick="updateCartItemQty('${item.cartItemId}', -1)">−</button>
-                        <span class="qty-val">${item.quantity}</span>
-                        <button class="qty-btn" onclick="updateCartItemQty('${item.cartItemId}', 1)">+</button>
-                    </div>
-                    <button class="cart-item-remove" onclick="updateCartItemQty('${item.cartItemId}', -999)">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-        `;
-    }).join('');
-
-    cartItemsContainers.forEach(container => container.innerHTML = cartHTML);
-
-    const subtotal = cart.reduce((sum, item) => sum + (item.livePrice * item.quantity), 0);
-    document.querySelectorAll('.cartSubtotal').forEach(el => el.textContent = `₹${subtotal.toLocaleString()}`);
-    document.querySelectorAll('.cartTotal').forEach(el => el.textContent = `₹${subtotal.toLocaleString()}`);
-}
 
 function showNotification(message) {
     const toast = document.createElement('div');
