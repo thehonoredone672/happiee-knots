@@ -672,8 +672,18 @@ if (checkoutForm) {
             const itemTotal = item.livePrice * item.quantity;
             grandTotal += itemTotal;
             textMessage += `${index + 1}. ${item.liveName} (x${item.quantity}) - ₹${itemTotal.toLocaleString('en-IN')}\n`;
+            
+            // Check if it's a personalized product with custom details
             if (item.customDetailsText) {
                 textMessage += `   _Customization: ${item.customDetailsText}_\n`;
+            }
+
+            // CRITICAL ADDITION: Only append image if it is a custom item and has a Cloudinary image link
+            if (item.customCloudinaryUrl) {
+                textMessage += `   📸 Reference Image: ${item.customCloudinaryUrl}\n`;
+            } else if (item.customPhotosBase64 && item.customPhotosBase64.length > 0 && !item.customCloudinaryUrl) {
+                // Fallback warning if you forgot to upload it to cloud storage first
+                textMessage += `   📸 Reference Image: [Image uploaded in form]\n`;
             }
         });
 
@@ -694,6 +704,7 @@ if (checkoutForm) {
         if (typeof renderCartItems === 'function') updateCartUI();
     });
 }
+
 
 // ========================================================
 //      ONE UNIFIED NAVBAR SESSION INITIALIZATION
