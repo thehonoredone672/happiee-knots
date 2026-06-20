@@ -469,7 +469,13 @@ window.editCustomOrder = (cartItemId) => {
     
     document.getElementById('modalCategory').textContent = item.liveCategory || 'Personalized';
     document.getElementById('modalTitle').textContent
-
+// Open your product modal view here
+    const modal = document.getElementById('productModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+};
 
 function showNotification(message) {
     const toast = document.createElement('div');
