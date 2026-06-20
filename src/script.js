@@ -22,6 +22,9 @@ let modalAutoSlideInterval;
 const CLOUDINARY_UPLOAD_PRESET = 'YOUR_UNSIGNED_PRESET'; // Change to your setup
 const CLOUDINARY_CLOUD_NAME = 'YOUR_CLOUD_NAME';         // Change to your setup
 
+// FIXED: Added central base domain target tracking for Render routing pipelines
+const API_BASE_URL = 'https://happiee-knots-1l.onrender.com';
+
 document.addEventListener('DOMContentLoaded', () => {
     setupMobileMenu();
     ensureModalMarkup();
@@ -43,7 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // ========================================
 async function fetchProductsAndSyncCart() {
     try {
-        const response = await fetch('/api/products/all');
+        // FIXED: Re-routed reference connection target using absolute Render paths
+        const response = await fetch(`${API_BASE_URL}/api/products/all`);
         const data = await response.json();
 
         if (data.success && data.products) {
@@ -84,11 +88,11 @@ function syncCartWithLocalDB() {
 
     cart = syncedCart;
     localStorage.setItem('happiee_cart', JSON.stringify(cart));
-    updateCartUI();
+    if (typeof updateCartUI === 'function') updateCartUI();
 }
 
 // ========================================
-// ADD & UPDATE QUANTITY OPERATIONS (FIXED)
+// ADD & UPDATE QUANTITY OPERATIONS
 // ========================================
 window.addToCart = (productId, quantity = 1, customDetailsText = null, customPhotosBase64 = [], customCloudinaryUrls = []) => {
     const isCustom = (customDetailsText || customPhotosBase64.length > 0 || customCloudinaryUrls.length > 0);
@@ -118,7 +122,6 @@ window.updateCartItemQty = (cartItemId, delta) => {
     if (index !== -1) {
         cart[index].quantity += delta;
         
-        // Safe splice deletion that handles both 'let' and 'const' arrays cleanly
         if (cart[index].quantity <= 0) {
             cart.splice(index, 1);
         }
@@ -134,7 +137,7 @@ async function uploadPhotosToCloudinary(base64Array) {
     if (!base64Array || base64Array.length === 0) return [];
 
     const uploadPromises = base64Array.map(async (base64Data) => {
-        if (base64Data.startsWith('http')) return base64Data; // Bypass re-upload if it's already a URL
+        if (base64Data.startsWith('http')) return base64Data;
 
         const formData = new FormData();
         formData.append('file', base64Data);
@@ -198,7 +201,7 @@ function initializeHeroSlider() {
     if (slides.length === 0 || !dotsContainer) return;
     
     let currentSlide = 0;
-    dotsContainer.innerHTML = ''; // Clear previous iterations
+    dotsContainer.innerHTML = '';
     slides.forEach((_, idx) => {
         const dot = document.createElement('div');
         dot.classList.add('dot');
@@ -401,7 +404,6 @@ function bindModalEvents() {
         });
     }
 
-    // INTERCEPT SAVE WITH ASYNC AWAIT SO ORDER/UPDATE CANNOT CRASH
     document.getElementById('modalAddCustomToCartBtn').addEventListener('click', async function() {
         const customDetails = document.getElementById('customDetails').value;
         if(!customDetails.trim() && currentUploadedPhotos.length === 0) {
@@ -409,11 +411,9 @@ function bindModalEvents() {
             return;
         }
 
-        // Lock button during remote async pipeline execution
         this.textContent = "Processing Custom Attachments...";
         this.disabled = true;
 
-        // Fire off network thread to secure permanent image endpoints
         const cloudinaryLinks = await uploadPhotosToCloudinary(currentUploadedPhotos);
 
         if(editingCartItemId) {
@@ -457,7 +457,7 @@ window.removeModalPhoto = (index) => {
     renderModalUploadGallery();
 }
 
-// ROUTING RE-ENTRY FROM CART EDIT ENGINE
+// FIXED: Cleaned parsing assignments and locked contextual function scopes cleanly
 window.editCustomOrder = (cartItemId) => {
     const item = cart.find(i => i.cartItemId === cartItemId);
     if(!item) return;
@@ -468,13 +468,79 @@ window.editCustomOrder = (cartItemId) => {
     currentUploadedPhotos = item.customPhotosBase64 ? [...item.customPhotosBase64] : [];
     
     document.getElementById('modalCategory').textContent = item.liveCategory || 'Personalized';
-    document.getElementById('modalTitle').textContent
-// Open your product modal view here
+    document.getElementById('modalTitle').textContent = item.liveName || 'Custom Order';
+
     const modal = document.getElementById('productModal');
     if (modal) {
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
+};
+
+window.openProductModal = (id) => {
+    currentModalProductId = id;
+    currentModalQty = 1;
+    editingCartItemId = null;
+    currentUploadedPhotos = [];
+    
+    const product = PRODUCTS.find(p => p.id === id);
+    if (!product) return;
+
+    const modal = document.getElementById('productModal');
+    if (!modal) return;
+
+    document.getElementById('modalCategory').textContent = product.category;
+    document.getElementById('modalTitle').textContent = product.name;
+
+    const isPersonalized = product.category === 'Personalized';
+    document.getElementById('standardLeftArea').style.display = isPersonalized ? 'none' : 'block';
+    document.getElementById('standardDetailsArea').style.display = isPersonalized ? 'none' : 'block';
+    document.getElementById('standardCheckoutArea').style.display = isPersonalized ? 'none' : 'block';
+    
+    document.getElementById('personalizedLeftArea').style.display = isPersonalized ? 'block' : 'none';
+    document.getElementById('personalizedCheckoutArea').style.display = isPersonalized ? 'block' : 'none';
+
+    if (!isPersonalized) {
+        document.getElementById('modalPrice').textContent = `₹${product.price.toLocaleString()}`;
+        document.getElementById('modalDesc').textContent = product.description || '';
+        document.getElementById('modalQtyVal').textContent = '1';
+        
+        const track = document.getElementById('modalSliderTrack');
+        const images = product.images || [product.image];
+        track.innerHTML = images.map(img => `<img src="${img}" style="width:100%; flex-shrink:0;">`).join('');
+        currentModalSlide = 0;
+        modalSlideCount = images.length;
+        track.style.transform = `translateX(0px)`;
+    } else {
+        document.getElementById('customDetails').value = '';
+        document.getElementById('modalCustomQtyVal').textContent = '1';
+        renderModalUploadGallery();
+    }
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+};
+
+window.closeProductModal = () => {
+    const modal = document.getElementById('productModal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
+};
+
+window.updateModalQty = (delta) => {
+    currentModalQty = Math.max(1, currentModalQty + delta);
+    const valEl = document.getElementById('modalQtyVal');
+    const customValEl = document.getElementById('modalCustomQtyVal');
+    if (valEl) valEl.textContent = currentModalQty;
+    if (customValEl) customValEl.textContent = currentModalQty;
+};
+
+window.moveModalSlider = (direction) => {
+    if (modalSlideCount <= 1) return;
+    currentModalSlide = (currentModalSlide + direction + modalSlideCount) % modalSlideCount;
+    const track = document.getElementById('modalSliderTrack');
+    const slideWidth = track.parentElement.clientWidth;
+    track.style.transform = `translateX(-${currentModalSlide * slideWidth}px)`;
 };
 
 function showNotification(message) {
@@ -538,38 +604,30 @@ if (checkoutForm) {
             grandTotal += itemTotal;
             textMessage += `${index + 1}. ${item.liveName} (x${item.quantity}) - ₹${itemTotal.toLocaleString('en-IN')}\n`;
             
-            // Check if it's a personalized product with custom details
             if (item.customDetailsText) {
                 textMessage += `   _Customization: ${item.customDetailsText}_\n`;
             }
 
-            // CRITICAL ADDITION: Only append image if it is a custom item and has a Cloudinary image link
             if (item.customCloudinaryUrl) {
                 textMessage += `   📸 Reference Image: ${item.customCloudinaryUrl}\n`;
-            } else if (item.customPhotosBase64 && item.customPhotosBase64.length > 0 && !item.customCloudinaryUrl) {
-                // Fallback warning if you forgot to upload it to cloud storage first
+            } else if (item.customPhotosBase64 && item.customPhotosBase64.length > 0) {
                 textMessage += `   📸 Reference Image: [Image uploaded in form]\n`;
             }
         });
 
         textMessage += `\n*💵 Grand Total: ₹${grandTotal.toLocaleString('en-IN')}*`;
-
         const encodedMessage = encodeURIComponent(textMessage);
-        
-        // Target WhatsApp Number
         const whatsAppLink = `https://wa.me/919025681308?text=${encodedMessage}`;
 
-        // Clear cart
         cart = [];
         localStorage.setItem('happiee_cart', JSON.stringify(cart));
         
         closeCheckoutForm();
         window.open(whatsAppLink, '_blank');
         
-        if (typeof renderCartItems === 'function') updateCartUI();
+        if (typeof updateCartUI === 'function') updateCartUI();
     });
 }
-
 
 // ========================================================
 //      ONE UNIFIED NAVBAR SESSION INITIALIZATION
@@ -580,14 +638,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function syncNavbarSessionState() {
     try {
-        const response = await fetch('/api/auth/me', { method: 'GET' });
+        // FIXED: Re-routed navbar handshake route to live base URL
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, { method: 'GET' });
         const data = await response.json();
 
         const authHeaderContainer = document.getElementById('authHeaderContainer');
         const mobileAuthContainer = document.getElementById('mobileAuthContainer');
 
         if (data.success && data.user) {
-            // 1. Calculate the user's name initials dynamically (e.g., "Naveen Kumar" -> "NK")
             const initials = data.user.name
                 .split(' ')
                 .map(part => part[0])
@@ -595,7 +653,6 @@ async function syncNavbarSessionState() {
                 .substring(0, 2)
                 .toUpperCase();
 
-            // 2. Desktop Navigation Update: Changes LOGIN/SIGNUP to LOG OUT + Profile Circle
             if (authHeaderContainer) {
                 authHeaderContainer.innerHTML = `
                     <a href="/api/auth/logout" class="nav-link hide-mobile" style="color: var(--color-gray-600); font-weight: 600; margin-right: 12px; display: inline-block;">LOG OUT</a>
@@ -605,7 +662,6 @@ async function syncNavbarSessionState() {
                 `;
             }
 
-            // 3. FIXED: Mobile View Menu Update (Removes Login/Signup and injects personalized state)
             if (mobileAuthContainer) {
                 mobileAuthContainer.innerHTML = `
                     <div style="padding: 1rem 0; border-top: 1px solid var(--color-pink-100); margin-top: 10px; width: 100%; text-align: center;">
