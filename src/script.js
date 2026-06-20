@@ -23,7 +23,7 @@ const CLOUDINARY_UPLOAD_PRESET = 'YOUR_UNSIGNED_PRESET'; // Change to your setup
 const CLOUDINARY_CLOUD_NAME = 'YOUR_CLOUD_NAME';         // Change to your setup
 
 // FIXED: Added central base domain target tracking for Render routing pipelines
-const API_BASE_URL = 'https://happiee-knots-1l.onrender.com';
+const API_BASE_URL = 'https://happieeknots.in';
 
 document.addEventListener('DOMContentLoaded', () => {
     setupMobileMenu();
